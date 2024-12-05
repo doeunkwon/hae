@@ -18,12 +18,14 @@
 }
 
 .message.user {
-    width: 70%;
+    width: fit-content;
+    max-width: 70%;
     background-color: var(--chat-user-color);
 }
 
 .message.assistant {
-    width: 70%;
+    width: fit-content;
+    max-width: 70%;
     background-color: var(--chat-assistant-color);
 }
 

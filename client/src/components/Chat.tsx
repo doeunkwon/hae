@@ -22,7 +22,12 @@ interface Message {
 }
 
 function Chat() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: "How can I help you today?",
+    },
+  ]);
   const [input, setInput] = useState<string>("");
   const [actionType, setActionType] = useState<"send" | "save">("send");
 
