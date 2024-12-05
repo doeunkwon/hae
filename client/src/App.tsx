@@ -1,15 +1,29 @@
-import React from "react";
 import Chat from "./components/Chat";
-import { ThemeProvider, CssBaseline } from "@mui/material";
+import {
+  ThemeProvider,
+  CssBaseline,
+  Container,
+  Typography,
+} from "@mui/material";
 import { darkTheme } from "./theme";
-
+import "./App.css";
 function App() {
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <div className="App">
-        <Chat />
-      </div>
+      <main className="App">
+        <Container maxWidth="md" className="app-container">
+          <Typography
+            component="h1"
+            variant="h4"
+            gutterBottom
+            sx={{ color: "primary.main" }}
+          >
+            hae beta
+          </Typography>
+          <Chat />
+        </Container>
+      </main>
     </ThemeProvider>
   );
 }

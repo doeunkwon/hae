@@ -71,69 +71,63 @@ function Chat() {
   };
 
   return (
-    <Container
-      className="chat-container"
-      maxWidth="md"
+    <Paper
+      elevation={3}
+      className="chat-paper"
       sx={{ bgcolor: "background.default" }}
     >
-      <Paper
-        elevation={3}
-        className="chat-paper"
-        sx={{ bgcolor: "background.default" }}
-      >
-        <List className="message-list">
-          {messages.map((message, index) => (
-            <ListItem
-              key={index}
-              className={`message ${message.role}`}
-              sx={{
-                marginLeft: message.role === "user" ? "auto" : "0",
-                marginRight: message.role === "user" ? "0" : "auto",
+      <List className="message-list">
+        {messages.map((message, index) => (
+          <ListItem
+            key={index}
+            className={`message ${message.role}`}
+            sx={{
+              marginLeft: message.role === "user" ? "auto" : "0",
+              marginRight: message.role === "user" ? "0" : "auto",
+            }}
+          >
+            <ListItemText
+              primary={message.role === "user" ? "You" : "Hae"}
+              primaryTypographyProps={{
+                sx: { color: "text.secondary" },
               }}
-            >
-              <ListItemText
-                primary={message.role === "user" ? "You" : "Hae"}
-                primaryTypographyProps={{
-                  sx: { color: "text.secondary" },
-                }}
-                secondary={message.content}
-                secondaryTypographyProps={{
-                  sx: { color: "text.primary" },
-                }}
-              />
-            </ListItem>
-          ))}
-        </List>
+              secondary={message.content}
+              secondaryTypographyProps={{
+                sx: { color: "text.primary" },
+              }}
+            />
+          </ListItem>
+        ))}
+      </List>
 
-        <Box className="input-container">
-          <TextField
-            fullWidth
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a question"
-            onKeyDown={handleKeyPress}
-            variant="outlined"
-          />
-          <Button onClick={sendMessage} sx={{ textTransform: "none" }}>
-            Send
-          </Button>
-        </Box>
+      <Box className="input-container">
+        <TextField
+          fullWidth
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask a question"
+          onKeyDown={handleKeyPress}
+          variant="outlined"
+        />
+        <Button onClick={sendMessage} sx={{ textTransform: "none" }}>
+          Send
+        </Button>
+      </Box>
 
-        <Box className="save-container">
-          <TextField
-            fullWidth
-            value={saveInput}
-            onChange={(e) => setSaveInput(e.target.value)}
-            placeholder="Save new information"
-            multiline
-            variant="outlined"
-          />
-          <Button onClick={saveText} sx={{ textTransform: "none" }}>
-            Save
-          </Button>
-        </Box>
-      </Paper>
-    </Container>
+      <Box className="save-container">
+        <TextField
+          fullWidth
+          value={saveInput}
+          onChange={(e) => setSaveInput(e.target.value)}
+          placeholder="Save new information"
+          multiline
+          variant="outlined"
+        />
+        <Button onClick={saveText} sx={{ textTransform: "none" }}>
+          Save
+        </Button>
+      </Box>
+    </Paper>
   );
 }
 
