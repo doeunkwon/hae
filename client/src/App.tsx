@@ -13,14 +13,18 @@ function App() {
       <CssBaseline />
       <main className="App">
         <Container maxWidth="md" className="app-container">
-          <Typography
-            component="h1"
-            variant="h4"
-            gutterBottom
-            sx={{ color: "primary.main" }}
-          >
-            hae beta
-          </Typography>
+          <div className="app-header">
+            <Typography
+              variant="h4"
+              gutterBottom
+              sx={{ color: "primary.main" }}
+            >
+              hae
+            </Typography>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              0.1
+            </Typography>
+          </div>
           <Chat />
         </Container>
       </main>
