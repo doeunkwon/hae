@@ -8,6 +8,10 @@ import {
   ListItem,
   ListItemText,
   Container,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import axios from "axios";
 import "../styles/Chat.css";
@@ -20,7 +24,7 @@ interface Message {
 function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
-  const [saveInput, setSaveInput] = useState<string>("");
+  const [actionType, setActionType] = useState<"send" | "save">("send");
 
   const sendMessage = async (): Promise<void> => {
     if (!input.trim()) return;
@@ -51,22 +55,31 @@ function Chat() {
   };
 
   const saveText = async (): Promise<void> => {
-    if (!saveInput.trim()) return;
+    if (!input.trim()) return;
 
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/save`, {
-        text: saveInput,
+        text: input,
       });
-      setSaveInput("");
+      setInput("");
       alert("Text saved successfully!");
     } catch (error) {
       console.error("Error saving text:", error);
     }
   };
 
+  const handleSubmit = async (): Promise<void> => {
+    if (actionType === "send") {
+      await sendMessage();
+    } else {
+      await saveText();
+    }
+  };
+
   const handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>): void => {
-    if (event.key === "Enter") {
-      sendMessage();
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit();
     }
   };
 
@@ -101,30 +114,36 @@ function Chat() {
       </List>
 
       <Box className="input-container">
+        <FormControl sx={{ minWidth: 120 }}>
+          <InputLabel>Action</InputLabel>
+          <Select
+            value={actionType}
+            onChange={(e) => setActionType(e.target.value as "send" | "save")}
+            label="Action"
+          >
+            <MenuItem value="send">Ask</MenuItem>
+            <MenuItem value="save">Save</MenuItem>
+          </Select>
+        </FormControl>
         <TextField
           fullWidth
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question"
+          placeholder={
+            actionType === "send" ? "Ask a question" : "Save new information"
+          }
           onKeyDown={handleKeyPress}
+          multiline={actionType === "save"}
           variant="outlined"
         />
-        <Button onClick={sendMessage} sx={{ textTransform: "none" }}>
-          Send
-        </Button>
-      </Box>
-
-      <Box className="save-container">
-        <TextField
-          fullWidth
-          value={saveInput}
-          onChange={(e) => setSaveInput(e.target.value)}
-          placeholder="Save new information"
-          multiline
-          variant="outlined"
-        />
-        <Button onClick={saveText} sx={{ textTransform: "none" }}>
-          Save
+        <Button
+          onClick={handleSubmit}
+          sx={{
+            textTransform: "none",
+            alignSelf: "stretch",
+          }}
+        >
+          {actionType === "send" ? "Ask" : "Save"}
         </Button>
       </Box>
     </Paper>

@@ -31,10 +31,5 @@
     display: flex;
     gap: 1rem;
     margin-top: 1rem;
-}
-
-.save-container {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
+    align-items: flex-start;
 }
