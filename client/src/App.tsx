@@ -1,12 +1,17 @@
 import React from "react";
 import Chat from "./components/Chat";
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import { darkTheme } from "./theme";
 
-const App: React.FC = () => {
+function App() {
   return (
-    <div className="App">
-      <Chat />
-    </div>
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <div className="App">
+        <Chat />
+      </div>
+    </ThemeProvider>
   );
-};
+}
 
 export default App;

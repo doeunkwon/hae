@@ -7,6 +7,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  Container,
 } from "@mui/material";
 import axios from "axios";
 import "../styles/Chat.css";
@@ -16,7 +17,7 @@ interface Message {
   content: string;
 }
 
-const Chat: React.FC = () => {
+function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
   const [saveInput, setSaveInput] = useState<string>("");
@@ -34,7 +35,7 @@ const Chat: React.FC = () => {
 
     try {
       const response = await axios.post<{ response: string }>(
-        "http://localhost:8000/chat",
+        `${process.env.REACT_APP_API_URL}/chat`,
         {
           messages: newMessages,
         }
@@ -53,7 +54,7 @@ const Chat: React.FC = () => {
     if (!saveInput.trim()) return;
 
     try {
-      await axios.post("http://localhost:8000/save", {
+      await axios.post(`${process.env.REACT_APP_API_URL}/save`, {
         text: saveInput,
       });
       setSaveInput("");
@@ -70,14 +71,35 @@ const Chat: React.FC = () => {
   };
 
   return (
-    <Box className="chat-container">
-      <Paper elevation={3} className="chat-paper">
+    <Container
+      className="chat-container"
+      maxWidth="md"
+      sx={{ bgcolor: "background.default" }}
+    >
+      <Paper
+        elevation={3}
+        className="chat-paper"
+        sx={{ bgcolor: "background.default" }}
+      >
         <List className="message-list">
           {messages.map((message, index) => (
-            <ListItem key={index} className={`message ${message.role}`}>
+            <ListItem
+              key={index}
+              className={`message ${message.role}`}
+              sx={{
+                marginLeft: message.role === "user" ? "auto" : "0",
+                marginRight: message.role === "user" ? "0" : "auto",
+              }}
+            >
               <ListItemText
-                primary={message.role === "user" ? "You" : "Assistant"}
+                primary={message.role === "user" ? "You" : "Hae"}
+                primaryTypographyProps={{
+                  sx: { color: "text.secondary" },
+                }}
                 secondary={message.content}
+                secondaryTypographyProps={{
+                  sx: { color: "text.primary" },
+                }}
               />
             </ListItem>
           ))}
@@ -88,10 +110,11 @@ const Chat: React.FC = () => {
             fullWidth
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a question..."
-            onKeyPress={handleKeyPress}
+            placeholder="Ask a question"
+            onKeyDown={handleKeyPress}
+            variant="outlined"
           />
-          <Button variant="contained" onClick={sendMessage}>
+          <Button onClick={sendMessage} sx={{ textTransform: "none" }}>
             Send
           </Button>
         </Box>
@@ -101,17 +124,17 @@ const Chat: React.FC = () => {
             fullWidth
             value={saveInput}
             onChange={(e) => setSaveInput(e.target.value)}
-            placeholder="Save new information..."
+            placeholder="Save new information"
             multiline
-            rows={3}
+            variant="outlined"
           />
-          <Button variant="contained" onClick={saveText}>
+          <Button onClick={saveText} sx={{ textTransform: "none" }}>
             Save
           </Button>
         </Box>
       </Paper>
-    </Box>
+    </Container>
   );
-};
+}
 
 export default Chat;
