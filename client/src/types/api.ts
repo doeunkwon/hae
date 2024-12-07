@@ -9,3 +9,8 @@ export interface SaveResponse {
 export interface ApiError {
     detail: string;
 } 
+
+export interface Message {
+    role: "user" | "assistant";
+    content: string;
+}

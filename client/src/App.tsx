@@ -19,7 +19,7 @@ function App() {
               gutterBottom
               sx={{ color: "primary.main" }}
             >
-              hae
+              Hae
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               0.1

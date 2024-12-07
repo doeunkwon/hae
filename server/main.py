@@ -6,7 +6,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 from database import VectorStore
-from models import TextInput, UpdateText, ChatMessage, ChatHistory
+from models import TextInput, UpdateText, ChatHistory
 
 # Load environment variables
 load_dotenv()
@@ -25,7 +25,15 @@ app.add_middleware(
 
 # Initialize Gemini
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-pro')
+model = genai.GenerativeModel(
+    'gemini-1.5-flash',
+    generation_config={
+        "max_output_tokens": 80,
+        "temperature": 0.2,
+        "top_p": 0.2,
+        "top_k": 5,
+    },
+    system_instruction="You are an AI assistant using RAG to help users access their personal memories and information. The context provided represents the user's experiences and memories, NOT yours. Never claim these experiences as your own. Instead, refer to them as 'your' (the user's) experiences.")
 
 # Ensure ChromaDB directory exists
 CHROMA_PATH = "./chroma_db"
@@ -43,19 +51,26 @@ async def chat(chat_history: ChatHistory):
     # Search for relevant context
     search_results = vector_store.search(user_message)
 
+    # Convert chat history to Gemini's format
+    gemini_history = []
+    for msg in chat_history.messages[:-1]:  # Exclude the latest message
+        role = "user" if msg.role == "user" else "model"
+        gemini_history.append({"role": role, "parts": [{"text": msg.content}]})
+
+    # Create chat
+    chat = model.start_chat(history=gemini_history)
+
     # Check if we have any relevant documents
     if search_results['documents'] and len(search_results['documents'][0]) > 0:
         relevant_docs = search_results['documents'][0]
-        context = "\n".join(relevant_docs)
-        prompt = f"""Context: {context}\n\nUser: {
-            user_message}\n\nAssistant: Please provide a response based on the context provided."""
+        user_context = "\n".join(relevant_docs)
+        prompt = f"""
+            User's Personal Context: {user_context}
+            User Message: {user_message}"""
     else:
-        # If no relevant context is found, just use the user message directly
-        prompt = f"""User: {user_message}
-            \n\nAssistant: Please provide a helpful response."""
+        prompt = user_message
 
-    # Generate response using Gemini
-    response = model.generate_content(prompt)
+    response = chat.send_message(prompt)
 
     return {"response": response.text}
 
@@ -75,27 +90,27 @@ async def save_text(text_input: TextInput):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/update")
-async def update_text(update_data: UpdateText):
-    try:
-        vector_store.update_text(
-            update_data.text_id,
-            update_data.new_text,
-            update_data.metadata
-        )
-        return {"message": "Text updated successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/update")
+# async def update_text(update_data: UpdateText):
+#     try:
+#         vector_store.update_text(
+#             update_data.text_id,
+#             update_data.new_text,
+#             update_data.metadata
+#         )
+#         return {"message": "Text updated successfully"}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/delete/{text_id}")
-async def delete_text(text_id: str):
-    try:
-        vector_store.delete_text(text_id)
-        return {"message": "Text deleted successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.delete("/delete/{text_id}")
+# async def delete_text(text_id: str):
+#     try:
+#         vector_store.delete_text(text_id)
+#         return {"message": "Text deleted successfully"}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -7,7 +7,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  Container,
   Select,
   MenuItem,
   FormControl,
@@ -15,11 +14,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import "../styles/Chat.css";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import { Message } from "../types/api";
 
 function Chat() {
   const [messages, setMessages] = useState<Message[]>([
