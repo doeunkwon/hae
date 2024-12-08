@@ -63,7 +63,8 @@ class VectorStore:
             # Search in ChromaDB
             results = self.collection.query(
                 query_embeddings=query_embedding,
-                n_results=min(n_results, self.collection.count())
+                n_results=min(n_results, self.collection.count()),
+                include=["documents", "metadatas", "distances"]
             )
             return results
         except Exception as e:

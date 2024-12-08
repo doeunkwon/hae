@@ -20,3 +20,8 @@ class ChatMessage(BaseModel):
 
 class ChatHistory(BaseModel):
     messages: List[ChatMessage]
+
+
+class ExtractedInformation(BaseModel):
+    name: str
+    notes: str

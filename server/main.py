@@ -1,12 +1,15 @@
+import json
 import os
 import pathlib
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from dotenv import load_dotenv
+from typing import Dict
+import datetime
 
 from database import VectorStore
-from models import TextInput, UpdateText, ChatHistory
+from models import TextInput, ChatHistory, ExtractedInformation
 
 # Load environment variables
 load_dotenv()
@@ -41,6 +44,46 @@ pathlib.Path(CHROMA_PATH).mkdir(parents=True, exist_ok=True)
 
 # Initialize vector store with absolute path
 vector_store = VectorStore()
+
+
+async def extract_information(text: str) -> ExtractedInformation:
+    extraction_prompt = """
+    Extract the following information from the text. If information is not present, use "Unknown":
+    - Name (of person being described)
+    - Notes (key details or description)
+
+    Example:
+    Input: "I met with Sarah Johnson yesterday. She's a biomedical researcher working on developing new cancer treatments using immunotherapy. She mentioned her team recently published a breakthrough paper in Nature about T-cell engineering."
+    Output: {
+        "name": "Sarah Johnson",
+        "notes": "Biomedical researcher working on cancer treatments using immunotherapy. Published breakthrough paper in Nature about T-cell engineering."
+    }
+    """
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "notes": {"type": "string"}
+        },
+        "required": ["name", "notes"]
+    }
+
+    response = model.generate_content(
+        extraction_prompt + f"\n\nText to analyze: {text}",
+        generation_config=genai.GenerationConfig(
+            response_mime_type="application/json",
+            response_schema=schema
+        )
+    )
+
+    json_text = json.loads(response.candidates[0].content.parts[0].text)
+
+    try:
+        return ExtractedInformation(name=json_text["name"], notes=json_text["notes"])
+    except Exception:
+        # Fallback if parsing fails
+        return ExtractedInformation(name="Unknown", notes=text)
 
 
 @app.post("/chat")
@@ -78,11 +121,28 @@ async def chat(chat_history: ChatHistory):
 @app.post("/save")
 async def save_text(text_input: TextInput):
     try:
-        print(f"Received save request with text: {text_input.text}")
-        print(f"Metadata: {text_input.metadata}")
 
-        doc_id = vector_store.add_text(text_input.text, text_input.metadata)
-        return {"message": "Text saved successfully", "id": doc_id}
+        # Extract structured information
+        extracted_info: ExtractedInformation = await extract_information(text_input.text)
+
+        print("extracted_info.name: " + str(extracted_info.name))
+        print("extracted_info.notes: " + str(extracted_info.notes))
+
+        # Combine existing metadata with extracted information
+        metadata = {
+            "name": extracted_info.name,
+            "notes": extracted_info.notes,
+            "timestamp": str(datetime.datetime.now())
+        }
+
+        print(f"Extracted metadata: {metadata}")
+
+        doc_id = vector_store.add_text(text_input.text, metadata)
+        return {
+            "message": "Text saved successfully",
+            "id": doc_id,
+            "extracted_info": extracted_info
+        }
     except Exception as e:
         print(f"Error in save_text endpoint: {str(e)}")
         import traceback
@@ -111,6 +171,6 @@ async def save_text(text_input: TextInput):
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
 
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
