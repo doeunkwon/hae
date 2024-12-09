@@ -57,20 +57,10 @@ func QueryInformation(c echo.Context) error {
 			Message: "Invalid request format",
 		})
 	}
-	log.Printf("Processing query: %s", req.Query)
+	log.Printf("Processing query for name: %s, query: %s", req.Name, req.Query)
 
-	// Enhance query using Gemini
-	enhancedQuery, err := services.EnhanceQuery(req.Query)
-	if err != nil {
-		log.Printf("Query enhancement failed: %v", err)
-		return c.JSON(http.StatusInternalServerError, models.Response{
-			Message: "Failed to enhance query",
-		})
-	}
-	log.Printf("Enhanced query: %s", enhancedQuery)
-
-	// Query database
-	results, err := database.QueryNetwork(enhancedQuery)
+	// Query database with name
+	results, err := database.QueryNetwork(req.Name)
 	if err != nil {
 		log.Printf("Database query failed: %v", err)
 		return c.JSON(http.StatusInternalServerError, models.Response{
@@ -79,8 +69,29 @@ func QueryInformation(c echo.Context) error {
 	}
 
 	log.Printf("Query successful, found %d results", len(results))
+
+	log.Printf("Results: %v", results)
+
+	answer, err := services.AnswerQuestion(req.Name, req.Query, results)
+	if err != nil {
+		log.Printf("Failed to answer question: %v", err)
+		return c.JSON(http.StatusInternalServerError, models.Response{
+			Message: "Failed to answer question",
+		})
+	}
+
 	return c.JSON(http.StatusOK, models.Response{
 		Message: "Query successful",
-		Data:    results,
+		Answer:  answer,
 	})
+}
+
+func GetNames(c echo.Context) error {
+	names, err := database.GetNames()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, models.Response{
+			Message: "Failed to get names",
+		})
+	}
+	return c.JSON(http.StatusOK, names)
 }

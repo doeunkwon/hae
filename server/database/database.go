@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"os"
-	"server/models"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -55,35 +54,39 @@ func SaveNetwork(name, content string) error {
 	return nil
 }
 
-func QueryNetwork(query string) ([]models.Network, error) {
-	log.Printf("Querying networks with search term: %s", query)
-
-	rows, err := db.Query(`
-			SELECT nid, name, content
-			FROM network
-			WHERE name LIKE ? OR content LIKE ?
-		`, "%"+query+"%", "%"+query+"%")
+func QueryNetwork(name string) ([]string, error) {
+	rows, err := db.Query("SELECT content FROM network WHERE name = ?", name)
 	if err != nil {
-		log.Printf("Failed to query networks: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	var networks []models.Network
+	var results []string
 	for rows.Next() {
-		var n models.Network
-		if err := rows.Scan(&n.NID, &n.Name, &n.Content); err != nil {
-			log.Printf("Failed to scan network row: %v", err)
+		var content string
+		if err := rows.Scan(&content); err != nil {
 			return nil, err
 		}
-		networks = append(networks, n)
+		results = append(results, content)
 	}
 
-	if err = rows.Err(); err != nil {
-		log.Printf("Error after scanning rows: %v", err)
+	return results, nil
+}
+
+func GetNames() ([]string, error) {
+	rows, err := db.Query(`SELECT name FROM network`)
+	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	log.Printf("Successfully retrieved %d networks", len(networks))
-	return networks, nil
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, nil
 }

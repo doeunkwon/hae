@@ -12,11 +12,12 @@ type SaveRequest struct {
 
 type QueryRequest struct {
 	Query string `json:"query"`
+	Name  string `json:"name"`
 }
 
 type Response struct {
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Message string `json:"message"`
+	Answer  string `json:"answer"`
 }
 
 type ExtractedInfo struct {

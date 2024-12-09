@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"server/models"
@@ -80,7 +81,7 @@ func ExtractInformation(input string) (*models.ExtractedInfo, error) {
 	return &result, nil
 }
 
-func EnhanceQuery(query string) (string, error) {
+func AnswerQuestion(name, question string, contentArray []string) (string, error) {
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
 	if err != nil {
@@ -89,17 +90,39 @@ func EnhanceQuery(query string) (string, error) {
 	defer client.Close()
 
 	model := client.GenerativeModel("gemini-1.5-flash")
-	prompt := fmt.Sprintf(`
-		Enhance the following search query to make it more effective for database search:
-		Query: %s
+	model.SetTemperature(0.8)
+	// Combine the content array into a single string
+	content := ""
+	for _, c := range contentArray {
+		content += c + "\n"
+	}
 
-		Return only the enhanced query text without any additional explanation.
-	`, query)
+	prompt := fmt.Sprintf(`
+		You are a knowledgeable assistant. Your task is to provide a clear and concise answer to the question based on the given content about %s.
+
+		Content:
+		%s
+
+		Question:
+		%s
+
+		Instructions:
+		- Focus on the most relevant information from the content to answer the question.
+		- Provide a direct and specific answer.
+		- If the content does not contain enough information to answer the question, state that explicitly.
+		- Avoid adding any information not present in the content.
+	`, name, content, question)
 
 	response, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate content: %v", err)
 	}
 
-	return string(response.Candidates[0].Content.Parts[0].(genai.Text)), nil /// !!! Might not work
+	if len(response.Candidates) > 0 {
+		answer := response.Candidates[0].Content.Parts[0].(genai.Text)
+		log.Printf("Answer: %s", answer)
+		return string(answer), nil
+	}
+
+	return "", fmt.Errorf("no valid response generated")
 }

@@ -16,11 +16,11 @@ import axios from "axios";
 import "../styles/Chat.css";
 import { Message } from "../types/api";
 
-function Chat() {
+function Chat({ currentName }: { currentName: string }) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "How can I help you today?",
+      content: "Hey there 🌞",
     },
   ]);
   const [input, setInput] = useState<string>("");
@@ -38,16 +38,17 @@ function Chat() {
     setInput("");
 
     try {
-      const response = await axios.post<{ response: string }>(
-        `${process.env.REACT_APP_API_URL}/chat`,
+      const response = await axios.post<{ message: string; answer: string }>(
+        `${process.env.REACT_APP_API_URL}/query`,
         {
-          messages: newMessages,
+          query: input,
+          name: currentName,
         }
       );
 
       setMessages([
         ...newMessages,
-        { role: "assistant", content: response.data.response },
+        { role: "assistant", content: response.data.answer },
       ]);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -114,7 +115,7 @@ function Chat() {
       </List>
 
       <Box className="input-container">
-        <FormControl sx={{ minWidth: 120 }}>
+        <FormControl sx={{ minWidth: 100 }}>
           <InputLabel>Action</InputLabel>
           <Select
             value={actionType}
