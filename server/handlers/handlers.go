@@ -86,12 +86,12 @@ func QueryInformation(c echo.Context) error {
 	})
 }
 
-func GetNames(c echo.Context) error {
-	names, err := database.GetNames()
+func GetNetworks(c echo.Context) error {
+	networks, err := database.GetNetworks()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, models.Response{
-			Message: "Failed to get names",
+			Message: "Failed to get networks",
 		})
 	}
-	return c.JSON(http.StatusOK, names)
+	return c.JSON(http.StatusOK, networks)
 }

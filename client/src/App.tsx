@@ -14,14 +14,14 @@ import { darkTheme } from "./theme";
 import "./App.css";
 import { useState, useEffect } from "react";
 import axios from "axios";
-
+import { Network } from "./types/api";
 function App() {
   const [currentName, setCurrentName] = useState<string>("");
-  const [names, setNames] = useState<string[]>([]);
+  const [networks, setNetworks] = useState<Network[]>([]);
 
   useEffect(() => {
-    axios.get("http://localhost:8080/names").then((res) => {
-      setNames(res.data);
+    axios.get("http://localhost:8080/networks").then((res) => {
+      setNetworks(res.data);
     });
   }, []);
 
@@ -56,9 +56,9 @@ function App() {
                 onChange={(e) => setCurrentName(e.target.value as string)}
                 label="Context"
               >
-                {names.map((name) => (
-                  <MenuItem key={name} value={name}>
-                    {name}
+                {networks.map((network) => (
+                  <MenuItem key={network.nid} value={network.nid}>
+                    {network.name}
                   </MenuItem>
                 ))}
               </Select>

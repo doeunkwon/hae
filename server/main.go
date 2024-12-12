@@ -33,7 +33,7 @@ func main() {
 	// Routes
 	e.POST("/save", handlers.SaveInformation)
 	e.POST("/query", handlers.QueryInformation)
-	e.GET("/names", handlers.GetNames)
+	e.GET("/networks", handlers.GetNetworks)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":8080"))

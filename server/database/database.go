@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"server/models"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -73,20 +74,20 @@ func QueryNetwork(name string) ([]string, error) {
 	return results, nil
 }
 
-func GetNames() ([]string, error) {
-	rows, err := db.Query(`SELECT name FROM network`)
+func GetNetworks() ([]models.Network, error) {
+	rows, err := db.Query(`SELECT nid, name, content FROM network`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var names []string
+	var networks []models.Network
 	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
+		var network models.Network
+		if err := rows.Scan(&network.NID, &network.Name, &network.Content); err != nil {
 			return nil, err
 		}
-		names = append(names, name)
+		networks = append(networks, network)
 	}
-	return names, nil
+	return networks, nil
 }
