@@ -66,10 +66,15 @@ function Chat({ currentNetwork }: { currentNetwork: Network | null }) {
 
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/save`, {
+        nid: currentNetwork?.nid,
         text: input,
       });
       setInput("");
-      alert("Text saved successfully!");
+      if (currentNetwork) {
+        alert("Text updated successfully!");
+      } else {
+        alert("Text saved successfully!");
+      }
     } catch (error) {
       console.error("Error saving text:", error);
     }

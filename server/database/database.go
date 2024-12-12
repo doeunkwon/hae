@@ -55,6 +55,16 @@ func SaveNetwork(name, content string) error {
 	return nil
 }
 
+func UpdateNetwork(nid int, content string) error {
+	_, err := db.Exec("UPDATE network SET content = ? WHERE nid = ?", content, nid)
+	if err != nil {
+		log.Printf("Failed to update network [nid: %d]: %v", nid, err)
+		return err
+	}
+	log.Printf("Successfully updated network [nid: %d]", nid)
+	return nil
+}
+
 func QueryNetwork(nid int) ([]string, error) {
 	rows, err := db.Query("SELECT content FROM network WHERE nid = ?", nid)
 	if err != nil {

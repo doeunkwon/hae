@@ -7,6 +7,7 @@ type Network struct {
 }
 
 type SaveRequest struct {
+	NID  int    `json:"nid"`
 	Text string `json:"text"`
 }
 

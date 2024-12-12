@@ -20,7 +20,7 @@ func SaveInformation(c echo.Context) error {
 			Message: "Invalid request format",
 		})
 	}
-	log.Printf("Processing text of length: %d characters", len(req.Text))
+	log.Printf("Processing text from network %d of length: %d characters", req.NID, len(req.Text))
 
 	// Extract information using Gemini
 	info, err := services.ExtractInformation(req.Text)
@@ -32,19 +32,35 @@ func SaveInformation(c echo.Context) error {
 	}
 	log.Printf("Successfully extracted information - Name: %s", info.Name)
 
-	// Save to database
-	err = database.SaveNetwork(info.Name, info.Content)
-	if err != nil {
-		log.Printf("Database save failed: %v", err)
-		return c.JSON(http.StatusInternalServerError, models.Response{
-			Message: "Failed to save information",
+	if req.NID == 0 {
+		// Save to database
+		err = database.SaveNetwork(info.Name, info.Content)
+		if err != nil {
+			log.Printf("Database save failed: %v", err)
+			return c.JSON(http.StatusInternalServerError, models.Response{
+				Message: "Failed to save information",
+			})
+		}
+
+		log.Println("Successfully saved information to database")
+		return c.JSON(http.StatusOK, models.Response{
+			Message: "Information saved successfully",
+		})
+	} else {
+		// Update existing network
+		err = database.UpdateNetwork(req.NID, info.Content)
+		if err != nil {
+			log.Printf("Database update failed: %v", err)
+			return c.JSON(http.StatusInternalServerError, models.Response{
+				Message: "Failed to update information",
+			})
+		}
+
+		log.Println("Successfully updated information in database")
+		return c.JSON(http.StatusOK, models.Response{
+			Message: "Information updated successfully",
 		})
 	}
-
-	log.Println("Successfully saved information to database")
-	return c.JSON(http.StatusOK, models.Response{
-		Message: "Information saved successfully",
-	})
 }
 
 func QueryInformation(c echo.Context) error {
