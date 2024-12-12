@@ -21,7 +21,9 @@ function App() {
 
   useEffect(() => {
     axios.get("http://localhost:8080/networks").then((res) => {
-      setNetworks(res.data);
+      if (res.data) {
+        setNetworks(res.data);
+      }
     });
   }, []);
 

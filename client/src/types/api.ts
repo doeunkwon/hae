@@ -18,5 +18,4 @@ export interface Message {
 export interface Network {
     nid: number;
     name: string;
-    content: string;
 }

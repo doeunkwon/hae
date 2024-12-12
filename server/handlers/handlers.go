@@ -33,12 +33,21 @@ func SaveInformation(c echo.Context) error {
 	log.Printf("Successfully extracted information - Name: %s", info.Name)
 
 	if req.NID == 0 {
-		// Save to database
-		err = database.SaveNetwork(info.Name, info.Content)
+		// Save new network
+		nid, err := database.SaveNetwork(info.Name)
 		if err != nil {
 			log.Printf("Database save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
 				Message: "Failed to save information",
+			})
+		}
+
+		// Save content for the new network
+		err = database.SaveContent(int(nid), info.Content)
+		if err != nil {
+			log.Printf("Database content save failed: %v", err)
+			return c.JSON(http.StatusInternalServerError, models.Response{
+				Message: "Failed to save content",
 			})
 		}
 
@@ -47,18 +56,18 @@ func SaveInformation(c echo.Context) error {
 			Message: "Information saved successfully",
 		})
 	} else {
-		// Update existing network
-		err = database.UpdateNetwork(req.NID, info.Content)
+		// Add new content to existing network
+		err = database.SaveContent(req.NID, info.Content)
 		if err != nil {
-			log.Printf("Database update failed: %v", err)
+			log.Printf("Database content save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
-				Message: "Failed to update information",
+				Message: "Failed to save content",
 			})
 		}
 
-		log.Println("Successfully updated information in database")
+		log.Println("Successfully added content to network")
 		return c.JSON(http.StatusOK, models.Response{
-			Message: "Information updated successfully",
+			Message: "Information added successfully",
 		})
 	}
 }
