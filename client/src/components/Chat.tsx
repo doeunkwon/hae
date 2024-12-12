@@ -14,9 +14,9 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import "../styles/Chat.css";
-import { Message } from "../types/api";
+import { Message, Network } from "../types/api";
 
-function Chat({ currentName }: { currentName: string }) {
+function Chat({ currentNetwork }: { currentNetwork: Network | null }) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -38,11 +38,17 @@ function Chat({ currentName }: { currentName: string }) {
     setInput("");
 
     try {
+      if (!currentNetwork) {
+        console.error("No network selected");
+        return;
+      }
+
       const response = await axios.post<{ message: string; answer: string }>(
         `${process.env.REACT_APP_API_URL}/query`,
         {
           query: input,
-          name: currentName,
+          name: currentNetwork.name,
+          nid: currentNetwork.nid,
         }
       );
 

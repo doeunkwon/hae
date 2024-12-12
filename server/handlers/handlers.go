@@ -60,7 +60,7 @@ func QueryInformation(c echo.Context) error {
 	log.Printf("Processing query for name: %s, query: %s", req.Name, req.Query)
 
 	// Query database with name
-	results, err := database.QueryNetwork(req.Name)
+	results, err := database.QueryNetwork(req.NID)
 	if err != nil {
 		log.Printf("Database query failed: %v", err)
 		return c.JSON(http.StatusInternalServerError, models.Response{

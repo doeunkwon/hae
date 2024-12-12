@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Network } from "./types/api";
 function App() {
-  const [currentName, setCurrentName] = useState<string>("");
+  const [currentNetwork, setCurrentNetwork] = useState<Network | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
 
   useEffect(() => {
@@ -52,8 +52,12 @@ function App() {
             <FormControl sx={{ minWidth: 150 }}>
               <InputLabel>Context</InputLabel>
               <Select
-                value={currentName}
-                onChange={(e) => setCurrentName(e.target.value as string)}
+                value={currentNetwork?.nid}
+                onChange={(e) =>
+                  setCurrentNetwork(
+                    networks.find((n) => n.nid === e.target.value) || null
+                  )
+                }
                 label="Context"
               >
                 {networks.map((network) => (
@@ -64,7 +68,7 @@ function App() {
               </Select>
             </FormControl>
           </Stack>
-          <Chat currentName={currentName} />
+          <Chat currentNetwork={currentNetwork} />
         </Container>
       </main>
     </ThemeProvider>

@@ -55,8 +55,8 @@ func SaveNetwork(name, content string) error {
 	return nil
 }
 
-func QueryNetwork(name string) ([]string, error) {
-	rows, err := db.Query("SELECT content FROM network WHERE name = ?", name)
+func QueryNetwork(nid int) ([]string, error) {
+	rows, err := db.Query("SELECT content FROM network WHERE nid = ?", nid)
 	if err != nil {
 		return nil, err
 	}

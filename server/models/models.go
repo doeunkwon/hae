@@ -13,6 +13,7 @@ type SaveRequest struct {
 type QueryRequest struct {
 	Query string `json:"query"`
 	Name  string `json:"name"`
+	NID   int    `json:"nid"`
 }
 
 type Response struct {
