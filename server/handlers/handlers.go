@@ -154,10 +154,11 @@ func GetNetworkContents(c echo.Context) error {
 
 func DeleteContent(c echo.Context) error {
 	cid := c.Param("cid")
+	nid := c.Param("nid")
 
-	log.Printf("Delete content request received [cid: %s]", cid)
+	log.Printf("Delete content request received [cid: %s, nid: %s]", cid, nid)
 
-	err := database.DeleteContent(cid)
+	err := database.DeleteContent(nid, cid)
 	if err != nil {
 		log.Printf("Failed to delete content %s: %v", cid, err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{

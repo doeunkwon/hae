@@ -21,7 +21,7 @@ import {
 } from "@mui/material";
 import RecentActorsOutlinedIcon from "@mui/icons-material/RecentActorsOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 import { darkTheme } from "./theme";
 import "./App.css";
 import { useState, useEffect } from "react";
@@ -143,7 +143,7 @@ function App() {
               </Typography>
             </div>
             <Stack direction="row" spacing={2} alignItems="center">
-              <IconButton onClick={handleClick} color="primary" size="small">
+              <IconButton onClick={handleClick} color="primary" size="large">
                 <RecentActorsOutlinedIcon />
               </IconButton>
               <FormControl sx={{ minWidth: 150 }}>
@@ -186,34 +186,29 @@ function App() {
                 <TableHead>
                   <TableRow>
                     <TableCell>Name</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                    <TableCell>Contents</TableCell>
+                    <TableCell>Delete</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {networks.map((network) => (
                     <TableRow key={network.nid}>
                       <TableCell>{network.name}</TableCell>
-                      <TableCell align="right">
+                      <TableCell>
                         <IconButton
                           size="small"
                           onClick={(e) => handleViewContents(e, network.nid)}
-                          sx={{ mr: 1 }}
                           onMouseDown={(e) => e.stopPropagation()}
                         >
-                          <VisibilityIcon fontSize="small" />
+                          <LightbulbOutlinedIcon fontSize="small" />
                         </IconButton>
+                      </TableCell>
+                      <TableCell>
                         <IconButton
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteNetwork(network.nid);
-                          }}
-                          sx={{
-                            color: "error.main",
-                            "&:hover": {
-                              backgroundColor: "error.main",
-                              color: "white",
-                            },
                           }}
                         >
                           <DeleteOutlineIcon fontSize="small" />
@@ -249,7 +244,7 @@ function App() {
                   <TableRow>
                     <TableCell>Content</TableCell>
                     <TableCell>Created At</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                    <TableCell>Delete</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -267,7 +262,7 @@ function App() {
                       <TableCell>
                         {new Date(content.created_at).toLocaleString()}
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell>
                         <IconButton
                           size="small"
                           onClick={(e) => {
@@ -276,13 +271,6 @@ function App() {
                               viewedNetworkId || 0,
                               content.cid
                             );
-                          }}
-                          sx={{
-                            color: "error.main",
-                            "&:hover": {
-                              backgroundColor: "error.main",
-                              color: "white",
-                            },
                           }}
                         >
                           <DeleteOutlineIcon fontSize="small" />
