@@ -19,3 +19,9 @@ export interface Network {
     nid: number;
     name: string;
 }
+
+export interface Content {
+    cid: number;
+    content: string;
+    created_at: string;
+}

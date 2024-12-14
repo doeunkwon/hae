@@ -34,6 +34,8 @@ func main() {
 	e.POST("/save", handlers.SaveInformation)
 	e.POST("/query", handlers.QueryInformation)
 	e.GET("/networks", handlers.GetNetworks)
+	e.DELETE("/networks/:nid/contents/:cid", handlers.DeleteContent)
+	e.GET("/networks/:nid/contents", handlers.GetNetworkContents)
 	e.DELETE("/networks/:nid", handlers.DeleteNetwork)
 
 	// Start server

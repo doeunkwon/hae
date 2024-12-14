@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"server/models"
@@ -152,4 +153,51 @@ func DeleteNetwork(nid string) error {
 	}
 
 	return tx.Commit()
+}
+
+func GetNetworkContents(nid string) ([]models.Content, error) {
+	rows, err := db.Query(`
+		SELECT cid, content, created_at 
+		FROM content 
+		WHERE nid = ?
+		ORDER BY created_at DESC
+	`, nid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var contents []models.Content
+	for rows.Next() {
+		var content models.Content
+		if err := rows.Scan(&content.CID, &content.Content, &content.CreatedAt); err != nil {
+			return nil, err
+		}
+		contents = append(contents, content)
+	}
+	return contents, nil
+}
+
+func DeleteContent(nid string, cid string) error {
+	log.Printf("Attempting to delete content [nid: %s, cid: %s]", nid, cid)
+
+	result, err := db.Exec(`DELETE FROM content WHERE nid = ? AND cid = ?`, nid, cid)
+	if err != nil {
+		log.Printf("Error deleting content: %v", err)
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error getting rows affected: %v", err)
+		return err
+	}
+
+	if rowsAffected == 0 {
+		log.Printf("No rows were deleted for nid: %s, cid: %s", nid, cid)
+		return fmt.Errorf("no content found with nid: %s and cid: %s", nid, cid)
+	}
+
+	log.Printf("Successfully deleted content [nid: %s, cid: %s]", nid, cid)
+	return nil
 }

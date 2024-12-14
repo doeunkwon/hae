@@ -32,3 +32,9 @@ type ExtractedInfo struct {
 	Content string `json:"content"`
 	Name    string `json:"name"`
 }
+
+type Content struct {
+	CID       int    `json:"cid"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+}

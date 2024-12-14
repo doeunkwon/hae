@@ -140,3 +140,33 @@ func DeleteNetwork(c echo.Context) error {
 		Message: "Network deleted successfully",
 	})
 }
+
+func GetNetworkContents(c echo.Context) error {
+	nid := c.Param("nid")
+	contents, err := database.GetNetworkContents(nid)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to fetch network contents",
+		})
+	}
+	return c.JSON(http.StatusOK, contents)
+}
+
+func DeleteContent(c echo.Context) error {
+	cid := c.Param("cid")
+
+	log.Printf("Delete content request received [cid: %s]", cid)
+
+	err := database.DeleteContent(cid)
+	if err != nil {
+		log.Printf("Failed to delete content %s: %v", cid, err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to delete content",
+		})
+	}
+
+	log.Printf("Content successfully deleted [cid: %s]", cid)
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "Content deleted successfully",
+	})
+}
