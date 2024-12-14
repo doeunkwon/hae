@@ -11,10 +11,16 @@ type SaveRequest struct {
 	Text string `json:"text"`
 }
 
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
 type QueryRequest struct {
-	Query string `json:"query"`
-	Name  string `json:"name"`
-	NID   int    `json:"nid"`
+	Query    string    `json:"query"`
+	Name     string    `json:"name"`
+	NID      int       `json:"nid"`
+	Messages []Message `json:"messages"`
 }
 
 type Response struct {

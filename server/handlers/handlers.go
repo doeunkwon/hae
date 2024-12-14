@@ -103,7 +103,7 @@ func QueryInformation(c echo.Context) error {
 
 	}
 
-	answer, err := services.AnswerQuestion(req.Name, req.Query, results)
+	answer, err := services.AnswerQuestion(req.Name, req.Query, req.Messages, results)
 	if err != nil {
 		log.Printf("Failed to answer question: %v", err)
 		return c.JSON(http.StatusInternalServerError, models.Response{

@@ -81,7 +81,7 @@ func ExtractInformation(input string) (*models.ExtractedInfo, error) {
 	return &result, nil
 }
 
-func AnswerQuestion(name, question string, contentArray []string) (string, error) {
+func AnswerQuestion(name, question string, messages []models.Message, contentArray []string) (string, error) {
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
 	if err != nil {
@@ -97,7 +97,7 @@ func AnswerQuestion(name, question string, contentArray []string) (string, error
 		content += c + "\n"
 	}
 
-	prompt := fmt.Sprintf(`
+	systemPrompt := fmt.Sprintf(`
 		You are a knowledgeable assistant helping me recall information about %s. These are my personal memories and interactions with %s.
 
 		My memories about %s:
@@ -122,10 +122,27 @@ func AnswerQuestion(name, question string, contentArray []string) (string, error
 			- Adding qualifiers unless absolutely necessary
 	`, name, name, name, content, question, name, name, name, name)
 
-	response, err := model.GenerateContent(ctx, genai.Text(prompt))
+	cs := model.StartChat()
+	cs.History = []*genai.Content{
+		{
+			Parts: []genai.Part{genai.Text(systemPrompt)},
+			Role:  "user",
+		},
+	}
+
+	for _, message := range messages {
+		cs.History = append(cs.History, &genai.Content{
+			Parts: []genai.Part{genai.Text(message.Content)},
+			Role:  message.Role,
+		})
+	}
+
+	response, err := cs.SendMessage(ctx, genai.Text(question))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate content: %v", err)
 	}
+
+	fmt.Printf("Response: %+v\n", response)
 
 	if len(response.Candidates) > 0 {
 		answer := response.Candidates[0].Content.Parts[0].(genai.Text)
