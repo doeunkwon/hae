@@ -38,17 +38,12 @@ function Chat({ currentNetwork }: { currentNetwork: Network | null }) {
     setInput("");
 
     try {
-      if (!currentNetwork) {
-        console.error("No network selected");
-        return;
-      }
-
       const response = await axios.post<{ message: string; answer: string }>(
         `${process.env.REACT_APP_API_URL}/query`,
         {
           query: input,
-          name: currentNetwork.name,
-          nid: currentNetwork.nid,
+          name: currentNetwork?.name || "",
+          nid: currentNetwork?.nid || 0,
         }
       );
 
@@ -66,7 +61,7 @@ function Chat({ currentNetwork }: { currentNetwork: Network | null }) {
 
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/save`, {
-        nid: currentNetwork?.nid,
+        nid: currentNetwork?.nid || 0,
         text: input,
       });
       setInput("");

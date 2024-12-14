@@ -84,18 +84,24 @@ func QueryInformation(c echo.Context) error {
 	}
 	log.Printf("Processing query for name: %s, query: %s", req.Name, req.Query)
 
-	// Query database with name
-	results, err := database.QueryNetwork(req.NID)
-	if err != nil {
-		log.Printf("Database query failed: %v", err)
-		return c.JSON(http.StatusInternalServerError, models.Response{
-			Message: "Failed to query database",
-		})
+	var results []string
+	var err error
+	if req.NID != 0 {
+
+		// Query database with name
+		results, err = database.QueryNetwork(req.NID)
+		if err != nil {
+			log.Printf("Database query failed: %v", err)
+			return c.JSON(http.StatusInternalServerError, models.Response{
+				Message: "Failed to query database",
+			})
+		}
+
+		log.Printf("Query successful, found %d results", len(results))
+
+		log.Printf("Results: %v", results)
+
 	}
-
-	log.Printf("Query successful, found %d results", len(results))
-
-	log.Printf("Results: %v", results)
 
 	answer, err := services.AnswerQuestion(req.Name, req.Query, results)
 	if err != nil {

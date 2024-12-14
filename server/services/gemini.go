@@ -98,20 +98,29 @@ func AnswerQuestion(name, question string, contentArray []string) (string, error
 	}
 
 	prompt := fmt.Sprintf(`
-		You are a knowledgeable assistant. Your task is to provide a clear and concise answer to the question based on the given content about %s.
+		You are a knowledgeable assistant helping me recall information about %s. These are my personal memories and interactions with %s.
 
-		Content:
+		My memories about %s:
 		%s
 
 		Question:
 		%s
 
 		Instructions:
-		- Focus on the most relevant information from the content to answer the question.
-		- Provide a direct and specific answer.
-		- If the content does not contain enough information to answer the question, state that explicitly.
-		- Avoid adding any information not present in the content.
-	`, name, content, question)
+		- Understand that all content represents my (the user's) direct experiences and interactions with %s
+		- For example, if a memory says "Had coffee and discussed AI", it means I personally had coffee with %s
+		- If memories are provided, base your answer strictly on these personal interactions
+		- If no memories are provided or memories are empty, you may:
+			a) For general knowledge questions (unrelated to %s), answer directly without any reference to memories
+			b) For questions about %s, acknowledge that I haven't shared any relevant memories
+		- Never make up or assume interactions that aren't explicitly mentioned in my memories
+		- Be transparent about what you can and cannot determine from my shared experiences
+		- Provide direct answers without:
+			- Explaining why you know something
+			- Mentioning what information was or wasn't provided
+			- Prefacing your answer with phrases like "Based on the content..." or "I can tell you that..."
+			- Adding qualifiers unless absolutely necessary
+	`, name, name, name, content, question, name, name, name, name)
 
 	response, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {

@@ -52,16 +52,17 @@ function App() {
               </Typography>
             </div>
             <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Context</InputLabel>
+              <InputLabel>Network</InputLabel>
               <Select
-                value={currentNetwork?.nid}
+                value={currentNetwork?.nid || ""}
                 onChange={(e) =>
                   setCurrentNetwork(
                     networks.find((n) => n.nid === e.target.value) || null
                   )
                 }
-                label="Context"
+                label="Network"
               >
+                <MenuItem value="">None</MenuItem>
                 {networks.map((network) => (
                   <MenuItem key={network.nid} value={network.nid}>
                     {network.name}
