@@ -11,13 +11,6 @@ import {
   InputLabel,
   IconButton,
   Popover,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
 } from "@mui/material";
 import RecentActorsOutlinedIcon from "@mui/icons-material/RecentActorsOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -27,6 +20,8 @@ import "./App.css";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Network, Content } from "./types/api";
+import NetworksTable from "./components/NetworksTable";
+import ContentsTable from "./components/ContentsTable";
 
 function App() {
   const [currentNetwork, setCurrentNetwork] = useState<Network | null>(null);
@@ -173,52 +168,25 @@ function App() {
             anchorEl={anchorEl}
             onClose={handleClose}
             anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "left",
+              vertical: "center",
+              horizontal: "center",
             }}
             transformOrigin={{
-              vertical: "top",
-              horizontal: "left",
+              vertical: "center",
+              horizontal: "center",
+            }}
+            sx={{
+              "& .MuiPopover-paper": {
+                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.5)",
+                borderRadius: "8px",
+              },
             }}
           >
-            <TableContainer component={Paper} sx={{ maxWidth: 400 }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Contents</TableCell>
-                    <TableCell>Delete</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {networks.map((network) => (
-                    <TableRow key={network.nid}>
-                      <TableCell>{network.name}</TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => handleViewContents(e, network.nid)}
-                          onMouseDown={(e) => e.stopPropagation()}
-                        >
-                          <LightbulbOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteNetwork(network.nid);
-                          }}
-                        >
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <NetworksTable
+              networks={networks}
+              onDelete={handleDeleteNetwork}
+              onViewContents={handleViewContents}
+            />
           </Popover>
 
           <Popover
@@ -227,60 +195,24 @@ function App() {
             onClose={handleContentPopoverClose}
             anchorOrigin={{
               vertical: "center",
-              horizontal: "right",
+              horizontal: "center",
             }}
             transformOrigin={{
               vertical: "center",
-              horizontal: "left",
+              horizontal: "center",
             }}
-            sx={{ marginLeft: 2 }}
+            sx={{
+              "& .MuiPopover-paper": {
+                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.5)",
+                borderRadius: "8px",
+              },
+            }}
           >
-            <TableContainer
-              component={Paper}
-              sx={{ maxWidth: 600, maxHeight: 400 }}
-            >
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Content</TableCell>
-                    <TableCell>Created At</TableCell>
-                    <TableCell>Delete</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {selectedNetworkContents.map((content) => (
-                    <TableRow key={content.cid}>
-                      <TableCell
-                        sx={{
-                          maxWidth: 400,
-                          whiteSpace: "normal",
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {content.content}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(content.created_at).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteContent(
-                              viewedNetworkId || 0,
-                              content.cid
-                            );
-                          }}
-                        >
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <ContentsTable
+              contents={selectedNetworkContents}
+              onDelete={handleDeleteContent}
+              networkId={viewedNetworkId}
+            />
           </Popover>
 
           <Chat currentNetwork={currentNetwork} />
