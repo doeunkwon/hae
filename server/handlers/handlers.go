@@ -126,3 +126,17 @@ func GetNetworks(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, networks)
 }
+
+func DeleteNetwork(c echo.Context) error {
+	nid := c.Param("nid")
+	err := database.DeleteNetwork(nid)
+	if err != nil {
+		log.Printf("Failed to delete network %s: %v", nid, err)
+		return c.JSON(http.StatusInternalServerError, models.Response{
+			Message: "Failed to delete network",
+		})
+	}
+	return c.JSON(http.StatusOK, models.Response{
+		Message: "Network deleted successfully",
+	})
+}

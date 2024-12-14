@@ -130,3 +130,26 @@ func GetNetworks() ([]models.Network, error) {
 	}
 	return networks, nil
 }
+
+func DeleteNetwork(nid string) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// Delete related content first (due to foreign key constraint)
+	_, err = tx.Exec(`DELETE FROM content WHERE nid = ?`, nid)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Then delete the network
+	_, err = tx.Exec(`DELETE FROM network WHERE nid = ?`, nid)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
