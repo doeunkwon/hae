@@ -16,7 +16,13 @@ import axios from "axios";
 import "../styles/Chat.css";
 import { Message, Network } from "../types/api";
 
-function Chat({ currentNetwork }: { currentNetwork: Network | null }) {
+function Chat({
+  currentNetwork,
+  onNetworkUpdate,
+}: {
+  currentNetwork: Network | null;
+  onNetworkUpdate: () => void;
+}) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -70,6 +76,7 @@ function Chat({ currentNetwork }: { currentNetwork: Network | null }) {
       } else {
         alert("Text saved successfully!");
       }
+      onNetworkUpdate(); // Add this line to refresh networks
     } catch (error) {
       console.error("Error saving text:", error);
     }

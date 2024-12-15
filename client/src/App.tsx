@@ -34,12 +34,15 @@ function App() {
     useState<HTMLButtonElement | null>(null);
   const [viewedNetworkId, setViewedNetworkId] = useState<number | null>(null);
 
+  const fetchNetworks = async () => {
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/networks`);
+    if (res.data) {
+      setNetworks(res.data);
+    }
+  };
+
   useEffect(() => {
-    axios.get(`${process.env.REACT_APP_API_URL}/networks`).then((res) => {
-      if (res.data) {
-        setNetworks(res.data);
-      }
-    });
+    fetchNetworks();
   }, []);
 
   // Handle popover open/close
@@ -214,7 +217,10 @@ function App() {
           </Popover>
 
           <Box width="100%" flex="1 1 auto" overflow="hidden">
-            <Chat currentNetwork={currentNetwork} />
+            <Chat
+              currentNetwork={currentNetwork}
+              onNetworkUpdate={fetchNetworks}
+            />
           </Box>
         </Container>
       </main>
