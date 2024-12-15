@@ -11,10 +11,9 @@ import {
   InputLabel,
   IconButton,
   Popover,
+  Box,
 } from "@mui/material";
 import RecentActorsOutlinedIcon from "@mui/icons-material/RecentActorsOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 import { darkTheme } from "./theme";
 import "./App.css";
 import { useState, useEffect } from "react";
@@ -123,7 +122,6 @@ function App() {
             justifyContent="space-between"
             alignItems="center"
             width="100%"
-            mb={2}
           >
             <div className="app-header">
               <Typography
@@ -152,7 +150,7 @@ function App() {
                   }
                   label="Network"
                 >
-                  <MenuItem value="">None</MenuItem>
+                  <MenuItem value="">Empty</MenuItem>
                   {networks.map((network) => (
                     <MenuItem key={network.nid} value={network.nid}>
                       {network.name}
@@ -215,7 +213,9 @@ function App() {
             />
           </Popover>
 
-          <Chat currentNetwork={currentNetwork} />
+          <Box width="100%" flex="1 1 auto" overflow="hidden">
+            <Chat currentNetwork={currentNetwork} />
+          </Box>
         </Container>
       </main>
     </ThemeProvider>
