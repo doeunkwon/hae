@@ -11,7 +11,6 @@ import (
 )
 
 func SaveInformation(c echo.Context) error {
-	log.Printf("Received save information request from %s", c.Request().RemoteAddr)
 
 	var req models.SaveRequest
 	if err := c.Bind(&req); err != nil {
@@ -20,7 +19,6 @@ func SaveInformation(c echo.Context) error {
 			Message: "Invalid request format",
 		})
 	}
-	log.Printf("Processing text from network %d of length: %d characters", req.NID, len(req.Text))
 
 	// Extract information using Gemini
 	info, err := services.ExtractInformation(req.Text)
@@ -30,7 +28,6 @@ func SaveInformation(c echo.Context) error {
 			Message: "Failed to extract information",
 		})
 	}
-	log.Printf("Successfully extracted information - Name: %s", info.Name)
 
 	if req.NID == 0 {
 		// Save new network
@@ -73,7 +70,6 @@ func SaveInformation(c echo.Context) error {
 }
 
 func QueryInformation(c echo.Context) error {
-	log.Printf("Received query request from %s", c.Request().RemoteAddr)
 
 	var req models.QueryRequest
 	if err := c.Bind(&req); err != nil {
@@ -82,7 +78,6 @@ func QueryInformation(c echo.Context) error {
 			Message: "Invalid request format",
 		})
 	}
-	log.Printf("Processing query for name: %s, query: %s", req.Name, req.Query)
 
 	var results []string
 	var err error
@@ -96,10 +91,6 @@ func QueryInformation(c echo.Context) error {
 				Message: "Failed to query database",
 			})
 		}
-
-		log.Printf("Query successful, found %d results", len(results))
-
-		log.Printf("Results: %v", results)
 
 	}
 
@@ -156,8 +147,6 @@ func DeleteContent(c echo.Context) error {
 	cid := c.Param("cid")
 	nid := c.Param("nid")
 
-	log.Printf("Delete content request received [cid: %s, nid: %s]", cid, nid)
-
 	err := database.DeleteContent(nid, cid)
 	if err != nil {
 		log.Printf("Failed to delete content %s: %v", cid, err)
@@ -166,7 +155,6 @@ func DeleteContent(c echo.Context) error {
 		})
 	}
 
-	log.Printf("Content successfully deleted [cid: %s]", cid)
 	return c.JSON(http.StatusOK, map[string]string{
 		"message": "Content deleted successfully",
 	})

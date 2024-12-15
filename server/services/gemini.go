@@ -59,13 +59,7 @@ func ExtractInformation(input string) (*models.ExtractedInfo, error) {
 		return nil, fmt.Errorf("failed to generate content: %v", err)
 	}
 
-	fmt.Printf("Raw response: %+v\n", response)
-	if len(response.Candidates) > 0 {
-		fmt.Printf("First candidate: %+v\n", response.Candidates[0])
-	}
-
 	text := response.Candidates[0].Content.Parts[0].(genai.Text)
-	fmt.Printf("Extracted text: %s\n", text)
 
 	var result models.ExtractedInfo
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
@@ -90,7 +84,7 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 	defer client.Close()
 
 	model := client.GenerativeModel("gemini-1.5-flash")
-	model.SetTemperature(0.8)
+	model.SetTemperature(1.0)
 	// Combine the content array into a single string
 	content := ""
 	for _, c := range contentArray {
@@ -137,12 +131,12 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 		})
 	}
 
+	fmt.Printf("\n\n\nMessage history: %+v\n\n\n", cs.History)
+
 	response, err := cs.SendMessage(ctx, genai.Text(question))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate content: %v", err)
 	}
-
-	fmt.Printf("Response: %+v\n", response)
 
 	if len(response.Candidates) > 0 {
 		answer := response.Candidates[0].Content.Parts[0].(genai.Text)

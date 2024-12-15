@@ -25,7 +25,6 @@ func InitDB() error {
 		log.Printf("Failed to open database: %v", err)
 		return err
 	}
-	log.Printf("Successfully connected to database at %s", dbPath)
 
 	// Create network table if it doesn't exist
 	_, err = db.Exec(`
@@ -73,7 +72,6 @@ func SaveNetwork(name string) (int64, error) {
 		return 0, err
 	}
 
-	log.Printf("Successfully saved network [name: %s, nid: %d]", name, nid)
 	return nid, nil
 }
 
@@ -86,7 +84,6 @@ func SaveContent(nid int, content string) error {
 		log.Printf("Failed to save content for network [nid: %d]: %v", nid, err)
 		return err
 	}
-	log.Printf("Successfully saved content for network [nid: %d]", nid)
 	return nil
 }
 
@@ -179,7 +176,6 @@ func GetNetworkContents(nid string) ([]models.Content, error) {
 }
 
 func DeleteContent(nid string, cid string) error {
-	log.Printf("Attempting to delete content [nid: %s, cid: %s]", nid, cid)
 
 	result, err := db.Exec(`DELETE FROM content WHERE nid = ? AND cid = ?`, nid, cid)
 	if err != nil {
@@ -198,6 +194,5 @@ func DeleteContent(nid string, cid string) error {
 		return fmt.Errorf("no content found with nid: %s and cid: %s", nid, cid)
 	}
 
-	log.Printf("Successfully deleted content [nid: %s, cid: %s]", nid, cid)
 	return nil
 }

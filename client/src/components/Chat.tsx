@@ -50,6 +50,7 @@ function Chat({
           query: input,
           name: currentNetwork?.name || "",
           nid: currentNetwork?.nid || 0,
+          messages: messages,
         }
       );
 
