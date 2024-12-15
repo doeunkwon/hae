@@ -13,7 +13,7 @@ import {
   Popover,
   Box,
 } from "@mui/material";
-import RecentActorsOutlinedIcon from "@mui/icons-material/RecentActorsOutlined";
+import TocOutlinedIcon from "@mui/icons-material/TocOutlined";
 import { darkTheme } from "./theme";
 import "./App.css";
 import { useState, useEffect } from "react";
@@ -140,7 +140,7 @@ function App() {
             </div>
             <Stack direction="row" spacing={2} alignItems="center">
               <IconButton onClick={handleClick} color="primary" size="large">
-                <RecentActorsOutlinedIcon />
+                <TocOutlinedIcon />
               </IconButton>
               <FormControl sx={{ minWidth: 150 }}>
                 <InputLabel>Network</InputLabel>
