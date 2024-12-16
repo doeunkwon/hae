@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"server/models"
@@ -131,8 +130,6 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 		})
 	}
 
-	fmt.Printf("\n\n\nMessage history: %+v\n\n\n", cs.History)
-
 	response, err := cs.SendMessage(ctx, genai.Text(question))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate content: %v", err)
@@ -140,7 +137,6 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 
 	if len(response.Candidates) > 0 {
 		answer := response.Candidates[0].Content.Parts[0].(genai.Text)
-		log.Printf("Answer: %s", answer)
 		return string(answer), nil
 	}
 
