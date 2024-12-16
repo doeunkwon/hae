@@ -2,6 +2,7 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import { darkTheme } from "./theme";
 import "./App.css";
 import { useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Authentication from "./components/Authentication";
 import Home from "./components/Home";
 
@@ -30,11 +31,33 @@ function App() {
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      {!user ? (
-        <Authentication onLogin={handleLogin} onRegister={handleRegister} />
-      ) : (
-        <Home user={user} />
-      )}
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              !user ? (
+                <Authentication
+                  onLogin={handleLogin}
+                  onRegister={handleRegister}
+                />
+              ) : (
+                <Navigate to="/home" replace />
+              )
+            }
+          />
+          <Route
+            path="/home"
+            element={
+              user ? <Home user={user} /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/"
+            element={<Navigate to={user ? "/home" : "/login"} replace />}
+          />
+        </Routes>
+      </BrowserRouter>
     </ThemeProvider>
   );
 }

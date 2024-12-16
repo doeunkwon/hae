@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"server/models"
 
@@ -93,6 +94,8 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 	systemPrompt := fmt.Sprintf(`
 		You are a knowledgeable assistant helping me recall information about %s. These are my personal memories and interactions with %s.
 
+		Today's date is: %s
+
 		My memories about %s:
 		%s
 
@@ -113,7 +116,7 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 			- Mentioning what information was or wasn't provided
 			- Prefacing your answer with phrases like "Based on the content..." or "I can tell you that..."
 			- Adding qualifiers unless absolutely necessary
-	`, name, name, name, content, question, name, name, name, name)
+	`, name, name, time.Now().Format("January 2, 2006"), name, content, question, name, name, name, name)
 
 	cs := model.StartChat()
 	cs.History = []*genai.Content{
