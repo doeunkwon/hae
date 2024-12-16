@@ -21,6 +21,12 @@ import axios from "axios";
 import { Network, Content } from "./types/api";
 import NetworksTable from "./components/NetworksTable";
 import ContentsTable from "./components/ContentsTable";
+import Authentication from "./components/Authentication";
+
+interface User {
+  email: string;
+  displayName: string;
+}
 
 function App() {
   const [currentNetwork, setCurrentNetwork] = useState<Network | null>(null);
@@ -33,6 +39,7 @@ function App() {
   const [contentAnchorEl, setContentAnchorEl] =
     useState<HTMLButtonElement | null>(null);
   const [viewedNetworkId, setViewedNetworkId] = useState<number | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const fetchNetworks = async () => {
     const res = await axios.get(`${process.env.REACT_APP_API_URL}/networks`);
@@ -115,115 +122,133 @@ function App() {
     }
   };
 
+  const handleLogin = (email: string, password: string) => {
+    console.log("Login:", { email, password });
+    setUser({ email, displayName: email.split("@")[0] });
+  };
+
+  const handleRegister = (
+    email: string,
+    password: string,
+    displayName: string
+  ) => {
+    console.log("Register:", { email, password, displayName });
+    setUser({ email, displayName });
+  };
+
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <main className="App">
-        <Container maxWidth="md" className="app-container">
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            width="100%"
-          >
-            <div className="app-header">
-              <Typography
-                variant="h4"
-                gutterBottom
-                sx={{ color: "primary.main" }}
-              >
-                Hae
-              </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                0.1
-              </Typography>
-            </div>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <IconButton onClick={handleClick} color="primary" size="large">
-                <TocOutlinedIcon />
-              </IconButton>
-              <FormControl sx={{ minWidth: 150 }}>
-                <InputLabel>Network</InputLabel>
-                <Select
-                  value={currentNetwork?.nid || ""}
-                  onChange={(e) =>
-                    setCurrentNetwork(
-                      networks.find((n) => n.nid === e.target.value) || null
-                    )
-                  }
-                  label="Network"
+      {!user ? (
+        <Authentication onLogin={handleLogin} onRegister={handleRegister} />
+      ) : (
+        <main className="App">
+          <Container maxWidth="md" className="app-container">
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              width="100%"
+            >
+              <div className="app-header">
+                <Typography
+                  variant="h4"
+                  gutterBottom
+                  sx={{ color: "primary.main" }}
                 >
-                  <MenuItem value="">Empty</MenuItem>
-                  {networks.map((network) => (
-                    <MenuItem key={network.nid} value={network.nid}>
-                      {network.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  Hae
+                </Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  0.1
+                </Typography>
+              </div>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <IconButton onClick={handleClick} color="primary" size="large">
+                  <TocOutlinedIcon />
+                </IconButton>
+                <FormControl sx={{ minWidth: 150 }}>
+                  <InputLabel>Network</InputLabel>
+                  <Select
+                    value={currentNetwork?.nid || ""}
+                    onChange={(e) =>
+                      setCurrentNetwork(
+                        networks.find((n) => n.nid === e.target.value) || null
+                      )
+                    }
+                    label="Network"
+                  >
+                    <MenuItem value="">Empty</MenuItem>
+                    {networks.map((network) => (
+                      <MenuItem key={network.nid} value={network.nid}>
+                        {network.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
             </Stack>
-          </Stack>
 
-          <Popover
-            open={open}
-            anchorEl={anchorEl}
-            onClose={handleClose}
-            anchorOrigin={{
-              vertical: "center",
-              horizontal: "center",
-            }}
-            transformOrigin={{
-              vertical: "center",
-              horizontal: "center",
-            }}
-            sx={{
-              "& .MuiPopover-paper": {
-                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.5)",
-                borderRadius: "8px",
-              },
-            }}
-          >
-            <NetworksTable
-              networks={networks}
-              onDelete={handleDeleteNetwork}
-              onViewContents={handleViewContents}
-            />
-          </Popover>
+            <Popover
+              open={open}
+              anchorEl={anchorEl}
+              onClose={handleClose}
+              anchorOrigin={{
+                vertical: "center",
+                horizontal: "center",
+              }}
+              transformOrigin={{
+                vertical: "center",
+                horizontal: "center",
+              }}
+              sx={{
+                "& .MuiPopover-paper": {
+                  boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.5)",
+                  borderRadius: "8px",
+                },
+              }}
+            >
+              <NetworksTable
+                networks={networks}
+                onDelete={handleDeleteNetwork}
+                onViewContents={handleViewContents}
+              />
+            </Popover>
 
-          <Popover
-            open={Boolean(contentAnchorEl)}
-            anchorEl={contentAnchorEl}
-            onClose={handleContentPopoverClose}
-            anchorOrigin={{
-              vertical: "center",
-              horizontal: "center",
-            }}
-            transformOrigin={{
-              vertical: "center",
-              horizontal: "center",
-            }}
-            sx={{
-              "& .MuiPopover-paper": {
-                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.5)",
-                borderRadius: "8px",
-              },
-            }}
-          >
-            <ContentsTable
-              contents={selectedNetworkContents}
-              onDelete={handleDeleteContent}
-              networkId={viewedNetworkId}
-            />
-          </Popover>
+            <Popover
+              open={Boolean(contentAnchorEl)}
+              anchorEl={contentAnchorEl}
+              onClose={handleContentPopoverClose}
+              anchorOrigin={{
+                vertical: "center",
+                horizontal: "center",
+              }}
+              transformOrigin={{
+                vertical: "center",
+                horizontal: "center",
+              }}
+              sx={{
+                "& .MuiPopover-paper": {
+                  boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.5)",
+                  borderRadius: "8px",
+                },
+              }}
+            >
+              <ContentsTable
+                contents={selectedNetworkContents}
+                onDelete={handleDeleteContent}
+                networkId={viewedNetworkId}
+              />
+            </Popover>
 
-          <Box width="100%" flex="1 1 auto" overflow="hidden">
-            <Chat
-              currentNetwork={currentNetwork}
-              onNetworkUpdate={fetchNetworks}
-            />
-          </Box>
-        </Container>
-      </main>
+            <Box width="100%" flex="1 1 auto" overflow="hidden">
+              <Chat
+                currentNetwork={currentNetwork}
+                onNetworkUpdate={fetchNetworks}
+              />
+            </Box>
+          </Container>
+        </main>
+      )}
     </ThemeProvider>
   );
 }
