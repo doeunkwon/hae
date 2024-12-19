@@ -1,32 +1,74 @@
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { darkTheme } from "./theme";
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  onAuthStateChanged,
+} from "firebase/auth";
+import { auth } from "./firebase";
 import Authentication from "./components/Authentication";
 import Home from "./components/Home";
 
 interface User {
   email: string;
   displayName: string;
+  uid: string;
 }
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleLogin = (email: string, password: string) => {
-    console.log("Login:", { email, password });
-    setUser({ email, displayName: email.split("@")[0] });
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser({
+          email: firebaseUser.email!,
+          displayName:
+            firebaseUser.displayName || firebaseUser.email!.split("@")[0],
+          uid: firebaseUser.uid,
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
   };
 
-  const handleRegister = (
+  const handleRegister = async (
     email: string,
     password: string,
     displayName: string
   ) => {
-    console.log("Register:", { email, password, displayName });
-    setUser({ email, displayName });
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      await updateProfile(userCredential.user, { displayName });
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
   };
+
+  if (loading) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <ThemeProvider theme={darkTheme}>

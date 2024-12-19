@@ -11,8 +11,12 @@ import {
 import { useState } from "react";
 
 interface AuthenticationProps {
-  onLogin: (email: string, password: string) => void;
-  onRegister: (email: string, password: string, displayName: string) => void;
+  onLogin: (email: string, password: string) => Promise<void>;
+  onRegister: (
+    email: string,
+    password: string,
+    displayName: string
+  ) => Promise<void>;
 }
 
 const Authentication = ({ onLogin, onRegister }: AuthenticationProps) => {
@@ -28,7 +32,7 @@ const Authentication = ({ onLogin, onRegister }: AuthenticationProps) => {
     setError("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -37,14 +41,18 @@ const Authentication = ({ onLogin, onRegister }: AuthenticationProps) => {
       return;
     }
 
-    if (isLogin) {
-      onLogin(email, password);
-    } else {
-      if (!displayName) {
-        setError("Please enter a display name");
-        return;
+    try {
+      if (isLogin) {
+        await onLogin(email, password);
+      } else {
+        if (!displayName) {
+          setError("Please enter a display name");
+          return;
+        }
+        await onRegister(email, password, displayName);
       }
-      onRegister(email, password, displayName);
+    } catch (error: any) {
+      setError(error.message);
     }
   };
 
