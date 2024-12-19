@@ -14,7 +14,7 @@ import {
 import TocOutlinedIcon from "@mui/icons-material/TocOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useState, useEffect } from "react";
-import { signOut, getAuth } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { Network, Content } from "../types/api";
 import NetworksTable from "./NetworksTable";

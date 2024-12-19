@@ -35,7 +35,7 @@ function NetworksTable({
     <TableContainer
       component={Paper}
       sx={{
-        maxWidth: 400,
+        maxWidth: 800,
         backgroundColor: theme.palette.background.default,
         "& .MuiTableCell-root": {
           borderBottom: "0px solid rgba(0, 0, 0, 0)",

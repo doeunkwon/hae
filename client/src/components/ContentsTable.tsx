@@ -43,14 +43,29 @@ function ContentsTable({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>Content</TableCell>
-            <TableCell>Delete</TableCell>
+            <TableCell
+              sx={{ fontWeight: "bold", color: theme.palette.primary.main }}
+            >
+              Content
+            </TableCell>
+            <TableCell
+              sx={{ fontWeight: "bold", color: theme.palette.primary.main }}
+            >
+              Delete
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {safeContents.length > 0 ? (
             safeContents.map((content) => (
-              <TableRow key={content.cid}>
+              <TableRow
+                key={content.cid}
+                sx={{
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.05)",
+                  },
+                }}
+              >
                 <TableCell
                   sx={{
                     maxWidth: 400,

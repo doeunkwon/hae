@@ -49,7 +49,6 @@ func SaveInformation(c echo.Context) error {
 			})
 		}
 
-		log.Println("Successfully saved information to database")
 		return c.JSON(http.StatusOK, models.Response{
 			Message: "Information saved successfully",
 		})
@@ -62,8 +61,6 @@ func SaveInformation(c echo.Context) error {
 				Message: "Failed to save content",
 			})
 		}
-
-		log.Println("Successfully added content to network")
 		return c.JSON(http.StatusOK, models.Response{
 			Message: "Information added successfully",
 		})
@@ -111,7 +108,6 @@ func QueryInformation(c echo.Context) error {
 }
 
 func GetNetworks(c echo.Context) error {
-	log.Printf("GetNetworks called with uid: %v", c.Get("uid"))
 	userID := c.Get("uid").(string)
 	networks, err := database.GetNetworks(userID)
 	if err != nil {
@@ -120,7 +116,6 @@ func GetNetworks(c echo.Context) error {
 			Message: "Failed to get networks",
 		})
 	}
-	log.Printf("Successfully retrieved %d networks", len(networks))
 	return c.JSON(http.StatusOK, networks)
 }
 

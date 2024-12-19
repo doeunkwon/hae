@@ -1,6 +1,6 @@
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { darkTheme } from "./theme";
-import "./App.css";
+import "./styles/App.css";
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import {
@@ -22,7 +22,6 @@ interface User {
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -38,7 +37,6 @@ function App() {
       } else {
         setUser(null);
       }
-      setLoading(false);
       setIsLoading(false);
     });
 
