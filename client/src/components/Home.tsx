@@ -9,9 +9,13 @@ import {
   IconButton,
   Popover,
   Box,
+  Tooltip,
 } from "@mui/material";
 import TocOutlinedIcon from "@mui/icons-material/TocOutlined";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { useState, useEffect } from "react";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 import axios from "axios";
 import { Network, Content } from "../types/api";
 import NetworksTable from "./NetworksTable";
@@ -22,6 +26,7 @@ interface HomeProps {
   user: {
     email: string;
     displayName: string;
+    uid: string;
   };
 }
 
@@ -108,6 +113,14 @@ function Home({ user }: HomeProps) {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   return (
     <main className="App">
       <Container maxWidth="md" className="app-container">
@@ -130,9 +143,16 @@ function Home({ user }: HomeProps) {
             </Typography>
           </div>
           <Stack direction="row" spacing={2} alignItems="center">
-            <IconButton onClick={handleClick} color="primary" size="large">
-              <TocOutlinedIcon />
-            </IconButton>
+            <Tooltip title="Networks">
+              <IconButton onClick={handleClick} color="primary" size="large">
+                <TocOutlinedIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Logout">
+              <IconButton onClick={handleLogout} color="primary" size="large">
+                <LogoutIcon />
+              </IconButton>
+            </Tooltip>
             <FormControl sx={{ minWidth: 150 }}>
               <InputLabel>Network</InputLabel>
               <Select
