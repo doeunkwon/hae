@@ -30,7 +30,8 @@ func InitDB() error {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS network (
 			nid INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL
+			name TEXT NOT NULL,
+			uid TEXT NOT NULL
 		)
 	`)
 	if err != nil {
@@ -45,6 +46,7 @@ func InitDB() error {
 			nid INTEGER NOT NULL,
 			content TEXT NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			uid TEXT NOT NULL,
 			FOREIGN KEY (nid) REFERENCES network(nid)
 		)
 	`)
@@ -57,11 +59,11 @@ func InitDB() error {
 	return nil
 }
 
-func SaveNetwork(name string) (int64, error) {
+func SaveNetwork(name string, uid string) (int64, error) {
 	result, err := db.Exec(`
-		INSERT INTO network (name)
-		VALUES (?)
-	`, name)
+		INSERT INTO network (name, uid)
+		VALUES (?, ?)
+	`, name, uid)
 	if err != nil {
 		log.Printf("Failed to save network [name: %s]: %v", name, err)
 		return 0, err
@@ -75,11 +77,9 @@ func SaveNetwork(name string) (int64, error) {
 	return nid, nil
 }
 
-func SaveContent(nid int, content string) error {
-	_, err := db.Exec(`
-		INSERT INTO content (nid, content)
-		VALUES (?, ?)
-	`, nid, content)
+func SaveContent(nid int, content string, userID string) error {
+	query := `INSERT INTO content (nid, content, uid) VALUES (?, ?, ?)`
+	_, err := db.Exec(query, nid, content, userID)
 	if err != nil {
 		log.Printf("Failed to save content for network [nid: %d]: %v", nid, err)
 		return err
@@ -87,13 +87,13 @@ func SaveContent(nid int, content string) error {
 	return nil
 }
 
-func QueryNetwork(nid int) ([]string, error) {
+func QueryNetwork(nid int, uid string) ([]string, error) {
 	rows, err := db.Query(`
 		SELECT content 
 		FROM content 
-		WHERE nid = ? 
+		WHERE nid IN (SELECT nid FROM network WHERE nid = ? AND uid = ?)
 		ORDER BY created_at DESC
-	`, nid)
+	`, nid, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -111,8 +111,8 @@ func QueryNetwork(nid int) ([]string, error) {
 	return results, nil
 }
 
-func GetNetworks() ([]models.Network, error) {
-	rows, err := db.Query(`SELECT nid, name FROM network`)
+func GetNetworks(uid string) ([]models.Network, error) {
+	rows, err := db.Query(`SELECT nid, name FROM network WHERE uid = ?`, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -129,21 +129,24 @@ func GetNetworks() ([]models.Network, error) {
 	return networks, nil
 }
 
-func DeleteNetwork(nid string) error {
+func DeleteNetwork(nid string, uid string) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
 	// Delete related content first (due to foreign key constraint)
-	_, err = tx.Exec(`DELETE FROM content WHERE nid = ?`, nid)
+	_, err = tx.Exec(`
+		DELETE FROM content 
+		WHERE nid IN (SELECT nid FROM network WHERE nid = ? AND uid = ?)
+	`, nid, uid)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	// Then delete the network
-	_, err = tx.Exec(`DELETE FROM network WHERE nid = ?`, nid)
+	_, err = tx.Exec(`DELETE FROM network WHERE nid = ? AND uid = ?`, nid, uid)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -152,13 +155,14 @@ func DeleteNetwork(nid string) error {
 	return tx.Commit()
 }
 
-func GetNetworkContents(nid string) ([]models.Content, error) {
+func GetNetworkContents(nid string, uid string) ([]models.Content, error) {
 	rows, err := db.Query(`
-		SELECT cid, content, created_at 
-		FROM content 
-		WHERE nid = ?
-		ORDER BY created_at DESC
-	`, nid)
+		SELECT c.cid, c.content, c.created_at 
+		FROM content c
+		JOIN network n ON c.nid = n.nid
+		WHERE n.nid = ? AND n.uid = ?
+		ORDER BY c.created_at DESC
+	`, nid, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -175,9 +179,12 @@ func GetNetworkContents(nid string) ([]models.Content, error) {
 	return contents, nil
 }
 
-func DeleteContent(nid string, cid string) error {
-
-	result, err := db.Exec(`DELETE FROM content WHERE nid = ? AND cid = ?`, nid, cid)
+func DeleteContent(nid string, cid string, uid string) error {
+	result, err := db.Exec(`
+		DELETE FROM content 
+		WHERE nid IN (SELECT nid FROM network WHERE nid = ? AND uid = ?)
+		AND cid = ?
+	`, nid, uid, cid)
 	if err != nil {
 		log.Printf("Error deleting content: %v", err)
 		return err

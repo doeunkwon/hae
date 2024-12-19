@@ -4,6 +4,7 @@ type Network struct {
 	NID     int    `json:"nid"`
 	Name    string `json:"name"`
 	Content string `json:"content"`
+	UID     string `json:"uid"`
 }
 
 type SaveRequest struct {
@@ -37,4 +38,5 @@ type Content struct {
 	CID       int    `json:"cid"`
 	Content   string `json:"content"`
 	CreatedAt string `json:"created_at"`
+	UID       string `json:"uid"`
 }

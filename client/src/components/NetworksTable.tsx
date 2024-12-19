@@ -23,11 +23,14 @@ interface NetworksTableProps {
 }
 
 function NetworksTable({
-  networks,
+  networks = [],
   onDelete,
   onViewContents,
 }: NetworksTableProps) {
   const theme = useTheme();
+
+  const safeNetworks = networks || [];
+
   return (
     <TableContainer
       component={Paper}
@@ -71,48 +74,56 @@ function NetworksTable({
           </TableRow>
         </TableHead>
         <TableBody>
-          {networks.map((network) => (
-            <TableRow
-              key={network.nid}
-              sx={{
-                "&:hover": {
-                  backgroundColor: "rgba(255, 255, 255, 0.05)",
-                },
-              }}
-            >
-              <TableCell>{network.name}</TableCell>
-              <TableCell>
-                <IconButton
-                  size="small"
-                  onClick={(e) => onViewContents(e, network.nid)}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  sx={{
-                    "&:hover": {
-                      color: "primary.main",
-                    },
-                  }}
-                >
-                  <LightbulbOutlinedIcon fontSize="small" />
-                </IconButton>
-              </TableCell>
-              <TableCell>
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(network.nid);
-                  }}
-                  sx={{
-                    "&:hover": {
-                      color: "#ff4444",
-                    },
-                  }}
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
+          {safeNetworks.length > 0 ? (
+            safeNetworks.map((network) => (
+              <TableRow
+                key={network.nid}
+                sx={{
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.05)",
+                  },
+                }}
+              >
+                <TableCell>{network.name}</TableCell>
+                <TableCell>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => onViewContents(e, network.nid)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    sx={{
+                      "&:hover": {
+                        color: "primary.main",
+                      },
+                    }}
+                  >
+                    <LightbulbOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+                <TableCell>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(network.nid);
+                    }}
+                    sx={{
+                      "&:hover": {
+                        color: "#ff4444",
+                      },
+                    }}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={3} align="center">
+                No networks available
               </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </TableContainer>

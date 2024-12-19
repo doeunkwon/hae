@@ -18,14 +18,20 @@ interface ContentsTableProps {
   networkId: number | null;
 }
 
-function ContentsTable({ contents, onDelete, networkId }: ContentsTableProps) {
+function ContentsTable({
+  contents = [],
+  onDelete,
+  networkId,
+}: ContentsTableProps) {
   const theme = useTheme();
+
+  const safeContents = contents || [];
+
   return (
     <TableContainer
       component={Paper}
       sx={{
-        maxWidth: 600,
-        maxHeight: 400,
+        maxWidth: 400,
         backgroundColor: theme.palette.background.default,
         "& .MuiTableCell-root": {
           borderBottom: "0px solid rgba(0, 0, 0, 0)",
@@ -37,72 +43,48 @@ function ContentsTable({ contents, onDelete, networkId }: ContentsTableProps) {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell
-              sx={{
-                fontWeight: "bold",
-                color: theme.palette.primary.main,
-              }}
-            >
-              Content
-            </TableCell>
-            <TableCell
-              sx={{
-                fontWeight: "bold",
-                color: theme.palette.primary.main,
-              }}
-            >
-              Created
-            </TableCell>
-            <TableCell
-              sx={{
-                fontWeight: "bold",
-                color: theme.palette.primary.main,
-              }}
-            >
-              Delete
-            </TableCell>
+            <TableCell>Content</TableCell>
+            <TableCell>Delete</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {contents.map((content) => (
-            <TableRow
-              key={content.cid}
-              sx={{
-                "&:hover": {
-                  backgroundColor: "rgba(255, 255, 255, 0.05)",
-                },
-              }}
-            >
-              <TableCell
-                sx={{
-                  maxWidth: 400,
-                  whiteSpace: "normal",
-                  wordBreak: "break-word",
-                }}
-              >
-                {content.content}
-              </TableCell>
-              <TableCell sx={{ whiteSpace: "nowrap" }}>
-                {new Date(content.created_at).toLocaleString()}
-              </TableCell>
-              <TableCell>
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(networkId || 0, content.cid);
-                  }}
+          {safeContents.length > 0 ? (
+            safeContents.map((content) => (
+              <TableRow key={content.cid}>
+                <TableCell
                   sx={{
-                    "&:hover": {
-                      color: "#ff4444",
-                    },
+                    maxWidth: 400,
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
                   }}
                 >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
+                  {content.content}
+                </TableCell>
+                <TableCell>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(networkId || 0, content.cid);
+                    }}
+                    sx={{
+                      "&:hover": {
+                        color: "#ff4444",
+                      },
+                    }}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={2} align="center">
+                No contents available
               </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </TableContainer>

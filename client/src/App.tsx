@@ -8,6 +8,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   onAuthStateChanged,
+  getAuth,
 } from "firebase/auth";
 import { auth } from "./firebase";
 import Authentication from "./components/Authentication";
@@ -22,8 +23,10 @@ interface User {
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
@@ -36,6 +39,7 @@ function App() {
         setUser(null);
       }
       setLoading(false);
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -66,8 +70,8 @@ function App() {
     }
   };
 
-  if (loading) {
-    return null; // Or a loading spinner
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
 
   return (

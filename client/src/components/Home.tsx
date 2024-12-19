@@ -14,13 +14,13 @@ import {
 import TocOutlinedIcon from "@mui/icons-material/TocOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useState, useEffect } from "react";
-import { signOut } from "firebase/auth";
+import { signOut, getAuth } from "firebase/auth";
 import { auth } from "../firebase";
-import axios from "axios";
 import { Network, Content } from "../types/api";
 import NetworksTable from "./NetworksTable";
 import ContentsTable from "./ContentsTable";
 import Chat from "./Chat";
+import api from "../utils/api";
 
 interface HomeProps {
   user: {
@@ -32,7 +32,7 @@ interface HomeProps {
 
 function Home({ user }: HomeProps) {
   const [currentNetwork, setCurrentNetwork] = useState<Network | null>(null);
-  const [networks, setNetworks] = useState<Network[]>([]);
+  const [networks, setNetworks] = useState<Network[]>(() => []);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [selectedNetworkContents, setSelectedNetworkContents] = useState<
     Content[]
@@ -40,11 +40,17 @@ function Home({ user }: HomeProps) {
   const [contentAnchorEl, setContentAnchorEl] =
     useState<HTMLButtonElement | null>(null);
   const [viewedNetworkId, setViewedNetworkId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchNetworks = async () => {
-    const res = await axios.get(`${process.env.REACT_APP_API_URL}/networks`);
-    if (res.data) {
-      setNetworks(res.data);
+    try {
+      setIsLoading(true);
+      const response = await api.get("/networks");
+      setNetworks(response.data);
+    } catch (error) {
+      console.error("Error fetching networks:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -62,8 +68,10 @@ function Home({ user }: HomeProps) {
 
   const handleDeleteNetwork = async (nid: number) => {
     try {
-      await axios.delete(`${process.env.REACT_APP_API_URL}/networks/${nid}`);
-      setNetworks(networks.filter((n) => n.nid !== nid));
+      await api.delete(`/networks/${nid}`);
+      setNetworks((prevNetworks) =>
+        prevNetworks ? prevNetworks.filter((n) => n.nid !== nid) : []
+      );
       if (currentNetwork?.nid === nid) {
         setCurrentNetwork(null);
       }
@@ -79,9 +87,7 @@ function Home({ user }: HomeProps) {
     event.stopPropagation();
     const buttonElement = event.currentTarget;
     try {
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/networks/${nid}/contents`
-      );
+      const response = await api.get(`/networks/${nid}/contents`);
       setSelectedNetworkContents(response.data);
       setContentAnchorEl(buttonElement);
       setViewedNetworkId(nid);
@@ -102,9 +108,7 @@ function Home({ user }: HomeProps) {
         console.error("No network ID available");
         return;
       }
-      await axios.delete(
-        `${process.env.REACT_APP_API_URL}/networks/${networkId}/contents/${cid}`
-      );
+      await api.delete(`/networks/${networkId}/contents/${cid}`);
       setSelectedNetworkContents(
         selectedNetworkContents.filter((content) => content.cid !== cid)
       );
@@ -159,17 +163,24 @@ function Home({ user }: HomeProps) {
                 value={currentNetwork?.nid || ""}
                 onChange={(e) =>
                   setCurrentNetwork(
-                    networks.find((n) => n.nid === e.target.value) || null
+                    networks?.find((n) => n.nid === e.target.value) || null
                   )
                 }
                 label="Network"
+                disabled={isLoading}
               >
                 <MenuItem value="">Empty</MenuItem>
-                {networks.map((network) => (
-                  <MenuItem key={network.nid} value={network.nid}>
-                    {network.name}
-                  </MenuItem>
-                ))}
+                {isLoading ? (
+                  <MenuItem disabled>Loading...</MenuItem>
+                ) : networks && networks.length > 0 ? (
+                  networks.map((network) => (
+                    <MenuItem key={network.nid} value={network.nid}>
+                      {network.name}
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem disabled>No networks available</MenuItem>
+                )}
               </Select>
             </FormControl>
           </Stack>
@@ -194,11 +205,17 @@ function Home({ user }: HomeProps) {
             },
           }}
         >
-          <NetworksTable
-            networks={networks}
-            onDelete={handleDeleteNetwork}
-            onViewContents={handleViewContents}
-          />
+          {isLoading ? (
+            <Box p={2}>Loading networks...</Box>
+          ) : networks && networks.length > 0 ? (
+            <NetworksTable
+              networks={networks}
+              onDelete={handleDeleteNetwork}
+              onViewContents={handleViewContents}
+            />
+          ) : (
+            <Box p={2}>No networks available</Box>
+          )}
         </Popover>
 
         <Popover

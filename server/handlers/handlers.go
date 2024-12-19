@@ -11,6 +11,7 @@ import (
 )
 
 func SaveInformation(c echo.Context) error {
+	userID := c.Get("uid").(string)
 
 	var req models.SaveRequest
 	if err := c.Bind(&req); err != nil {
@@ -31,7 +32,7 @@ func SaveInformation(c echo.Context) error {
 
 	if req.NID == 0 {
 		// Save new network
-		nid, err := database.SaveNetwork(info.Name)
+		nid, err := database.SaveNetwork(info.Name, userID)
 		if err != nil {
 			log.Printf("Database save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
@@ -40,7 +41,7 @@ func SaveInformation(c echo.Context) error {
 		}
 
 		// Save content for the new network
-		err = database.SaveContent(int(nid), info.Content)
+		err = database.SaveContent(int(nid), info.Content, userID)
 		if err != nil {
 			log.Printf("Database content save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
@@ -54,7 +55,7 @@ func SaveInformation(c echo.Context) error {
 		})
 	} else {
 		// Add new content to existing network
-		err = database.SaveContent(req.NID, info.Content)
+		err = database.SaveContent(req.NID, info.Content, userID)
 		if err != nil {
 			log.Printf("Database content save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
@@ -70,6 +71,7 @@ func SaveInformation(c echo.Context) error {
 }
 
 func QueryInformation(c echo.Context) error {
+	userID := c.Get("uid").(string)
 
 	var req models.QueryRequest
 	if err := c.Bind(&req); err != nil {
@@ -84,7 +86,7 @@ func QueryInformation(c echo.Context) error {
 	if req.NID != 0 {
 
 		// Query database with name
-		results, err = database.QueryNetwork(req.NID)
+		results, err = database.QueryNetwork(req.NID, userID)
 		if err != nil {
 			log.Printf("Database query failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
@@ -109,18 +111,23 @@ func QueryInformation(c echo.Context) error {
 }
 
 func GetNetworks(c echo.Context) error {
-	networks, err := database.GetNetworks()
+	log.Printf("GetNetworks called with uid: %v", c.Get("uid"))
+	userID := c.Get("uid").(string)
+	networks, err := database.GetNetworks(userID)
 	if err != nil {
+		log.Printf("Error getting networks: %v", err)
 		return c.JSON(http.StatusInternalServerError, models.Response{
 			Message: "Failed to get networks",
 		})
 	}
+	log.Printf("Successfully retrieved %d networks", len(networks))
 	return c.JSON(http.StatusOK, networks)
 }
 
 func DeleteNetwork(c echo.Context) error {
+	userID := c.Get("uid").(string)
 	nid := c.Param("nid")
-	err := database.DeleteNetwork(nid)
+	err := database.DeleteNetwork(nid, userID)
 	if err != nil {
 		log.Printf("Failed to delete network %s: %v", nid, err)
 		return c.JSON(http.StatusInternalServerError, models.Response{
@@ -133,8 +140,9 @@ func DeleteNetwork(c echo.Context) error {
 }
 
 func GetNetworkContents(c echo.Context) error {
+	userID := c.Get("uid").(string)
 	nid := c.Param("nid")
-	contents, err := database.GetNetworkContents(nid)
+	contents, err := database.GetNetworkContents(nid, userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to fetch network contents",
@@ -144,10 +152,11 @@ func GetNetworkContents(c echo.Context) error {
 }
 
 func DeleteContent(c echo.Context) error {
+	userID := c.Get("uid").(string)
 	cid := c.Param("cid")
 	nid := c.Param("nid")
 
-	err := database.DeleteContent(nid, cid)
+	err := database.DeleteContent(nid, cid, userID)
 	if err != nil {
 		log.Printf("Failed to delete content %s: %v", cid, err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{

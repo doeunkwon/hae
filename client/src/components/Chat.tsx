@@ -12,7 +12,7 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import axios from "axios";
+import api from "../utils/api";
 import "../styles/Chat.css";
 import { Message, Network } from "../types/api";
 
@@ -44,8 +44,8 @@ function Chat({
     setInput("");
 
     try {
-      const response = await axios.post<{ message: string; answer: string }>(
-        `${process.env.REACT_APP_API_URL}/query`,
+      const response = await api.post<{ message: string; answer: string }>(
+        "/query",
         {
           query: input,
           name: currentNetwork?.name || "",
@@ -67,7 +67,7 @@ function Chat({
     if (!input.trim()) return;
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/save`, {
+      await api.post("/save", {
         nid: currentNetwork?.nid || 0,
         text: input,
       });
@@ -77,9 +77,22 @@ function Chat({
       } else {
         alert("Text saved successfully!");
       }
-      onNetworkUpdate(); // Add this line to refresh networks
-    } catch (error) {
+      onNetworkUpdate();
+    } catch (error: any) {
       console.error("Error saving text:", error);
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+        alert(
+          `Error saving text: ${error.response.data.error || "Unknown error"}`
+        );
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+        alert("No response received from server");
+      } else {
+        console.error("Error setting up request:", error.message);
+        alert(`Error: ${error.message}`);
+      }
     }
   };
 
