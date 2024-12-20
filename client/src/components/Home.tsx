@@ -41,6 +41,7 @@ function Home({ user }: HomeProps) {
     useState<HTMLButtonElement | null>(null);
   const [viewedNetworkId, setViewedNetworkId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [actionType, setActionType] = useState<"send" | "save">("save");
 
   const fetchNetworks = async () => {
     try {
@@ -57,6 +58,12 @@ function Home({ user }: HomeProps) {
   useEffect(() => {
     fetchNetworks();
   }, []);
+
+  useEffect(() => {
+    if (!currentNetwork?.nid) {
+      setActionType("save");
+    }
+  }, [currentNetwork]);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -128,37 +135,41 @@ function Home({ user }: HomeProps) {
   return (
     <main className="App">
       <Container maxWidth="md" className="app-container">
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          width="100%"
-        >
-          <div className="app-header">
-            <Typography
-              variant="h4"
-              gutterBottom
-              sx={{ color: "primary.main" }}
-            >
-              Hae
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              0.1
-            </Typography>
-          </div>
+        <Stack direction="column" spacing={2} width="100%">
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            width="100%"
+          >
+            <div className="app-header">
+              <Typography
+                variant="h4"
+                gutterBottom
+                sx={{ color: "primary.main" }}
+              >
+                Hae
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                0.1
+              </Typography>
+            </div>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Tooltip title="Networks">
+                <IconButton onClick={handleClick} color="primary" size="large">
+                  <TocOutlinedIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Logout">
+                <IconButton onClick={handleLogout} color="primary" size="large">
+                  <LogoutIcon />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </Stack>
           <Stack direction="row" spacing={2} alignItems="center">
-            <Tooltip title="Networks">
-              <IconButton onClick={handleClick} color="primary" size="large">
-                <TocOutlinedIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Logout">
-              <IconButton onClick={handleLogout} color="primary" size="large">
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-            <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Network</InputLabel>
+            <FormControl sx={{ flex: 1 }}>
+              <InputLabel>Who</InputLabel>
               <Select
                 value={currentNetwork?.nid || "New"}
                 onChange={(e) =>
@@ -166,7 +177,7 @@ function Home({ user }: HomeProps) {
                     networks?.find((n) => n.nid === e.target.value) || null
                   )
                 }
-                label="Network"
+                label="Who"
                 disabled={isLoading}
               >
                 <MenuItem value="New">New</MenuItem>
@@ -181,6 +192,19 @@ function Home({ user }: HomeProps) {
                 ) : (
                   <MenuItem disabled>No networks available</MenuItem>
                 )}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ flex: 1 }}>
+              <InputLabel>What</InputLabel>
+              <Select
+                value={actionType}
+                onChange={(e) =>
+                  setActionType(e.target.value as "send" | "save")
+                }
+                label="What"
+              >
+                <MenuItem value="save">Save</MenuItem>
+                {currentNetwork && <MenuItem value="send">Ask</MenuItem>}
               </Select>
             </FormControl>
           </Stack>
@@ -248,6 +272,7 @@ function Home({ user }: HomeProps) {
           <Chat
             currentNetwork={currentNetwork}
             onNetworkUpdate={fetchNetworks}
+            actionType={actionType}
           />
         </Box>
       </Container>

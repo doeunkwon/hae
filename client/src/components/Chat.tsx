@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   TextField,
@@ -7,10 +7,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
 } from "@mui/material";
 import api from "../utils/api";
 import "../styles/Chat.css";
@@ -19,9 +15,11 @@ import { Message, Network } from "../types/api";
 function Chat({
   currentNetwork,
   onNetworkUpdate,
+  actionType,
 }: {
   currentNetwork: Network | null;
   onNetworkUpdate: () => void;
+  actionType: "send" | "save";
 }) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -30,13 +28,6 @@ function Chat({
     },
   ]);
   const [input, setInput] = useState<string>("");
-  const [actionType, setActionType] = useState<"send" | "save">("save");
-
-  useEffect(() => {
-    if (!currentNetwork?.nid) {
-      setActionType("save");
-    }
-  }, [currentNetwork]);
 
   const sendMessage = async (): Promise<void> => {
     if (!input.trim()) return;
@@ -148,17 +139,6 @@ function Chat({
       </List>
 
       <Box className="input-container">
-        <FormControl sx={{ minWidth: 100 }}>
-          <InputLabel>Action</InputLabel>
-          <Select
-            value={actionType}
-            onChange={(e) => setActionType(e.target.value as "send" | "save")}
-            label="Action"
-          >
-            <MenuItem value="save">Save</MenuItem>
-            {currentNetwork && <MenuItem value="send">Ask</MenuItem>}
-          </Select>
-        </FormControl>
         <TextField
           fullWidth
           value={input}
