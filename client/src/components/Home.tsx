@@ -167,7 +167,11 @@ function Home({ user }: HomeProps) {
               </Tooltip>
             </Stack>
           </Stack>
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            alignItems={{ xs: "stretch", sm: "center" }}
+          >
             <FormControl sx={{ flex: 1 }}>
               <InputLabel>Who</InputLabel>
               <Select

@@ -147,7 +147,7 @@ function Chat({
             actionType === "send" ? "Ask a question" : "Save new information"
           }
           onKeyDown={handleKeyPress}
-          multiline={actionType === "save"}
+          multiline={true}
           variant="outlined"
         />
         <Button
