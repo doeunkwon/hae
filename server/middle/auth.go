@@ -21,8 +21,9 @@ func FirebaseAuth(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
 		}
 
-		// Add the user ID to the context
+		// Add both the user ID and token to the context
 		c.Set("uid", token.UID)
+		c.Set("token", idToken)
 		return next(c)
 	}
 }

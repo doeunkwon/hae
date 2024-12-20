@@ -12,6 +12,7 @@ import (
 
 func SaveInformation(c echo.Context) error {
 	userID := c.Get("uid").(string)
+	userToken := c.Get("token").(string)
 
 	var req models.SaveRequest
 	if err := c.Bind(&req); err != nil {
@@ -41,7 +42,7 @@ func SaveInformation(c echo.Context) error {
 		}
 
 		// Save content for the new network
-		err = database.SaveContent(int(nid), info.Content, userID)
+		err = database.SaveContent(int(nid), info.Content, userID, userToken)
 		if err != nil {
 			log.Printf("Database content save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
@@ -54,7 +55,7 @@ func SaveInformation(c echo.Context) error {
 		})
 	} else {
 		// Add new content to existing network
-		err = database.SaveContent(req.NID, info.Content, userID)
+		err = database.SaveContent(req.NID, info.Content, userID, userToken)
 		if err != nil {
 			log.Printf("Database content save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
@@ -69,7 +70,7 @@ func SaveInformation(c echo.Context) error {
 
 func QueryInformation(c echo.Context) error {
 	userID := c.Get("uid").(string)
-
+	userToken := c.Get("token").(string)
 	var req models.QueryRequest
 	if err := c.Bind(&req); err != nil {
 		log.Printf("Failed to bind query request: %v", err)
@@ -83,7 +84,7 @@ func QueryInformation(c echo.Context) error {
 	if req.NID != 0 {
 
 		// Query database with name
-		results, err = database.QueryNetwork(req.NID, userID)
+		results, err = database.QueryNetwork(req.NID, userID, userToken)
 		if err != nil {
 			log.Printf("Database query failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
@@ -136,8 +137,10 @@ func DeleteNetwork(c echo.Context) error {
 
 func GetNetworkContents(c echo.Context) error {
 	userID := c.Get("uid").(string)
+	userToken := c.Get("token").(string)
+
 	nid := c.Param("nid")
-	contents, err := database.GetNetworkContents(nid, userID)
+	contents, err := database.GetNetworkContents(nid, userID, userToken)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to fetch network contents",

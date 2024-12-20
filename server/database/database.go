@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"server/models"
+	"server/utils"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -44,7 +45,7 @@ func InitDB() error {
 		CREATE TABLE IF NOT EXISTS content (
 			cid INTEGER PRIMARY KEY AUTOINCREMENT,
 			nid INTEGER NOT NULL,
-			content TEXT NOT NULL,
+			encrypted_content TEXT NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			uid TEXT NOT NULL,
 			FOREIGN KEY (nid) REFERENCES network(nid)
@@ -77,19 +78,21 @@ func SaveNetwork(name string, uid string) (int64, error) {
 	return nid, nil
 }
 
-func SaveContent(nid int, content string, userID string) error {
-	query := `INSERT INTO content (nid, content, uid) VALUES (?, ?, ?)`
-	_, err := db.Exec(query, nid, content, userID)
+func SaveContent(nid int, content string, userID string, userToken string) error {
+	// Encrypt content using user's token
+	encryptedContent, err := utils.Encrypt(content, userToken)
 	if err != nil {
-		log.Printf("Failed to save content for network [nid: %d]: %v", nid, err)
 		return err
 	}
-	return nil
+
+	query := `INSERT INTO content (nid, encrypted_content, uid) VALUES (?, ?, ?)`
+	_, err = db.Exec(query, nid, encryptedContent, userID)
+	return err
 }
 
-func QueryNetwork(nid int, uid string) ([]string, error) {
+func QueryNetwork(nid int, uid string, userToken string) ([]string, error) {
 	rows, err := db.Query(`
-		SELECT content 
+		SELECT encrypted_content 
 		FROM content 
 		WHERE nid IN (SELECT nid FROM network WHERE nid = ? AND uid = ?)
 		ORDER BY created_at DESC
@@ -101,9 +104,15 @@ func QueryNetwork(nid int, uid string) ([]string, error) {
 
 	var results []string
 	for rows.Next() {
-		var content string
-		if err := rows.Scan(&content); err != nil {
+		var encryptedContent string
+		if err := rows.Scan(&encryptedContent); err != nil {
 			return nil, err
+		}
+
+		// Decrypt content using user's token
+		content, err := utils.Decrypt(encryptedContent, userToken)
+		if err != nil {
+			continue // Skip if decryption fails
 		}
 		results = append(results, content)
 	}
@@ -155,9 +164,9 @@ func DeleteNetwork(nid string, uid string) error {
 	return tx.Commit()
 }
 
-func GetNetworkContents(nid string, uid string) ([]models.Content, error) {
+func GetNetworkContents(nid string, uid string, userToken string) ([]models.Content, error) {
 	rows, err := db.Query(`
-		SELECT c.cid, c.content, c.created_at 
+		SELECT c.cid, c.encrypted_content, c.created_at 
 		FROM content c
 		JOIN network n ON c.nid = n.nid
 		WHERE n.nid = ? AND n.uid = ?
@@ -171,9 +180,19 @@ func GetNetworkContents(nid string, uid string) ([]models.Content, error) {
 	var contents []models.Content
 	for rows.Next() {
 		var content models.Content
-		if err := rows.Scan(&content.CID, &content.Content, &content.CreatedAt); err != nil {
+		var encryptedContent string
+		if err := rows.Scan(&content.CID, &encryptedContent, &content.CreatedAt); err != nil {
 			return nil, err
 		}
+
+		// Decrypt the content using user's token
+		decryptedContent, err := utils.Decrypt(encryptedContent, userToken)
+		if err != nil {
+			log.Printf("Failed to decrypt content: %v", err)
+			continue // Skip this content if decryption fails
+		}
+		content.Content = decryptedContent
+
 		contents = append(contents, content)
 	}
 	return contents, nil
