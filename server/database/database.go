@@ -31,7 +31,7 @@ func InitDB() error {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS network (
 			nid INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL,
+			encrypted_name TEXT NOT NULL,
 			uid TEXT NOT NULL
 		)
 	`)
@@ -60,11 +60,17 @@ func InitDB() error {
 	return nil
 }
 
-func SaveNetwork(name string, uid string) (int64, error) {
+func SaveNetwork(name string, uid string, userToken string) (int64, error) {
+	// Encrypt network name using user's token
+	encryptedName, err := utils.Encrypt(name, userToken)
+	if err != nil {
+		return 0, fmt.Errorf("failed to encrypt network name: %v", err)
+	}
+
 	result, err := db.Exec(`
-		INSERT INTO network (name, uid)
+		INSERT INTO network (encrypted_name, uid)
 		VALUES (?, ?)
-	`, name, uid)
+	`, encryptedName, uid)
 	if err != nil {
 		log.Printf("Failed to save network [name: %s]: %v", name, err)
 		return 0, err
@@ -120,8 +126,8 @@ func QueryNetwork(nid int, uid string, userToken string) ([]string, error) {
 	return results, nil
 }
 
-func GetNetworks(uid string) ([]models.Network, error) {
-	rows, err := db.Query(`SELECT nid, name FROM network WHERE uid = ?`, uid)
+func GetNetworks(uid string, userToken string) ([]models.Network, error) {
+	rows, err := db.Query(`SELECT nid, encrypted_name FROM network WHERE uid = ?`, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -130,9 +136,18 @@ func GetNetworks(uid string) ([]models.Network, error) {
 	var networks []models.Network
 	for rows.Next() {
 		var network models.Network
-		if err := rows.Scan(&network.NID, &network.Name); err != nil {
+		var encryptedName string
+		if err := rows.Scan(&network.NID, &encryptedName); err != nil {
 			return nil, err
 		}
+
+		// Decrypt network name using user's token
+		decryptedName, err := utils.Decrypt(encryptedName, userToken)
+		if err != nil {
+			log.Printf("Failed to decrypt network name: %v", err)
+			continue // Skip this network if decryption fails
+		}
+		network.Name = decryptedName
 		networks = append(networks, network)
 	}
 	return networks, nil

@@ -33,7 +33,7 @@ func SaveInformation(c echo.Context) error {
 
 	if req.NID == 0 {
 		// Save new network
-		nid, err := database.SaveNetwork(info.Name, userID)
+		nid, err := database.SaveNetwork(info.Name, userID, userToken)
 		if err != nil {
 			log.Printf("Database save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
@@ -110,7 +110,9 @@ func QueryInformation(c echo.Context) error {
 
 func GetNetworks(c echo.Context) error {
 	userID := c.Get("uid").(string)
-	networks, err := database.GetNetworks(userID)
+	userToken := c.Get("token").(string)
+
+	networks, err := database.GetNetworks(userID, userToken)
 	if err != nil {
 		log.Printf("Error getting networks: %v", err)
 		return c.JSON(http.StatusInternalServerError, models.Response{
