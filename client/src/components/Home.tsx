@@ -160,7 +160,7 @@ function Home({ user }: HomeProps) {
             <FormControl sx={{ minWidth: 150 }}>
               <InputLabel>Network</InputLabel>
               <Select
-                value={currentNetwork?.nid || ""}
+                value={currentNetwork?.nid || "New"}
                 onChange={(e) =>
                   setCurrentNetwork(
                     networks?.find((n) => n.nid === e.target.value) || null
@@ -169,7 +169,7 @@ function Home({ user }: HomeProps) {
                 label="Network"
                 disabled={isLoading}
               >
-                <MenuItem value="">Empty</MenuItem>
+                <MenuItem value="New">New</MenuItem>
                 {isLoading ? (
                   <MenuItem disabled>Loading...</MenuItem>
                 ) : networks && networks.length > 0 ? (

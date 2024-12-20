@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -30,7 +30,13 @@ function Chat({
     },
   ]);
   const [input, setInput] = useState<string>("");
-  const [actionType, setActionType] = useState<"send" | "save">("send");
+  const [actionType, setActionType] = useState<"send" | "save">("save");
+
+  useEffect(() => {
+    if (!currentNetwork?.nid) {
+      setActionType("save");
+    }
+  }, [currentNetwork]);
 
   const sendMessage = async (): Promise<void> => {
     if (!input.trim()) return;
@@ -149,8 +155,8 @@ function Chat({
             onChange={(e) => setActionType(e.target.value as "send" | "save")}
             label="Action"
           >
-            <MenuItem value="send">Ask</MenuItem>
             <MenuItem value="save">Save</MenuItem>
+            {currentNetwork && <MenuItem value="send">Ask</MenuItem>}
           </Select>
         </FormControl>
         <TextField
