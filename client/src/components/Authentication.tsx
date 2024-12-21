@@ -32,6 +32,25 @@ const Authentication = ({ onLogin, onRegister }: AuthenticationProps) => {
     setError("");
   };
 
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return "Password must be at least 8 characters long";
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "Password must contain at least one uppercase letter";
+    }
+    if (!/[a-z]/.test(password)) {
+      return "Password must contain at least one lowercase letter";
+    }
+    if (!/[0-9]/.test(password)) {
+      return "Password must contain at least one number";
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return "Password must contain at least one special character";
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -41,14 +60,23 @@ const Authentication = ({ onLogin, onRegister }: AuthenticationProps) => {
       return;
     }
 
+    if (!isLogin) {
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        setError(passwordError);
+        return;
+      }
+
+      if (!displayName) {
+        setError("Please enter a display name");
+        return;
+      }
+    }
+
     try {
       if (isLogin) {
         await onLogin(email, password);
       } else {
-        if (!displayName) {
-          setError("Please enter a display name");
-          return;
-        }
         await onRegister(email, password, displayName);
       }
     } catch (error: any) {
@@ -111,6 +139,14 @@ const Authentication = ({ onLogin, onRegister }: AuthenticationProps) => {
               fullWidth
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              FormHelperTextProps={{
+                sx: { mt: 2 },
+              }}
+              helperText={
+                !isLogin
+                  ? "Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character"
+                  : ""
+              }
             />
 
             {error && <Alert severity="error">{error}</Alert>}

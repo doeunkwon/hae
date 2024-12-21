@@ -142,18 +142,9 @@ function Home({ user }: HomeProps) {
             alignItems="center"
             width="100%"
           >
-            <div className="app-header">
-              <Typography
-                variant="h4"
-                gutterBottom
-                sx={{ color: "primary.main" }}
-              >
-                Hae
-              </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                0.1
-              </Typography>
-            </div>
+            <Typography variant="h4" sx={{ color: "primary.main" }}>
+              Hae
+            </Typography>
             <Stack direction="row" spacing={2} alignItems="center">
               <Tooltip title="Networks">
                 <IconButton onClick={handleClick} color="primary" size="large">
