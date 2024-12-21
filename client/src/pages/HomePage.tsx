@@ -168,11 +168,7 @@ function HomePage() {
               </Tooltip>
             </Stack>
           </Stack>
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            alignItems={{ xs: "stretch", sm: "center" }}
-          >
+          <Stack direction={"row"} spacing={2} alignItems={"center"}>
             <FormControl sx={{ flex: 1 }}>
               <InputLabel>Who</InputLabel>
               <Select

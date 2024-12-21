@@ -135,7 +135,7 @@ function ChatPage({
         ))}
       </List>
 
-      <Box className="input-container">
+      <Box display={"flex"} flexDirection={"row"} gap={1}>
         <TextField
           fullWidth
           value={input}

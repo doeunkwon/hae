@@ -28,10 +28,3 @@
     max-width: 70%;
     background-color: var(--chat-assistant-color);
 }
-
-.input-container {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-    align-items: flex-start;
-}
