@@ -12,7 +12,7 @@ import api from "../utils/api";
 import "../styles/Chat.css";
 import { Message, Network } from "../types/api";
 
-function Chat({
+function ChatPage({
   currentNetwork,
   onNetworkUpdate,
   actionType,
@@ -164,4 +164,4 @@ function Chat({
   );
 }
 
-export default Chat;
+export default ChatPage;

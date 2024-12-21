@@ -1,6 +1,5 @@
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { darkTheme } from "./theme";
-import "./styles/App.css";
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import {
@@ -11,8 +10,8 @@ import {
   getAuth,
 } from "firebase/auth";
 import { auth } from "./firebase";
-import Authentication from "./components/Authentication";
-import Home from "./components/Home";
+import AuthenticationPage from "./pages/AuthenticationPage";
+import HomePage from "./pages/HomePage";
 
 interface User {
   email: string;
@@ -81,7 +80,7 @@ function App() {
             path="/login"
             element={
               !user ? (
-                <Authentication
+                <AuthenticationPage
                   onLogin={handleLogin}
                   onRegister={handleRegister}
                 />
@@ -92,9 +91,7 @@ function App() {
           />
           <Route
             path="/home"
-            element={
-              user ? <Home user={user} /> : <Navigate to="/login" replace />
-            }
+            element={user ? <HomePage /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/"

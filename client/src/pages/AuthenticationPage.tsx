@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 
-interface AuthenticationProps {
+interface AuthenticationPageProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onRegister: (
     email: string,
@@ -19,7 +19,10 @@ interface AuthenticationProps {
   ) => Promise<void>;
 }
 
-const Authentication = ({ onLogin, onRegister }: AuthenticationProps) => {
+const AuthenticationPage = ({
+  onLogin,
+  onRegister,
+}: AuthenticationPageProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -181,4 +184,4 @@ const Authentication = ({ onLogin, onRegister }: AuthenticationProps) => {
   );
 };
 
-export default Authentication;
+export default AuthenticationPage;

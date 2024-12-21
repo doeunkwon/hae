@@ -11,26 +11,19 @@ import {
   Box,
   Tooltip,
 } from "@mui/material";
-import TocOutlinedIcon from "@mui/icons-material/TocOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useState, useEffect } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { Network, Content } from "../types/api";
-import NetworksTable from "./NetworksTable";
-import ContentsTable from "./ContentsTable";
-import Chat from "./Chat";
+import NetworksTable from "../components/tables/NetworksTable";
+import ContentsTable from "../components/tables/ContentsTable";
+import ChatPage from "./ChatPage";
 import api from "../utils/api";
+import "../styles/Home.css";
 
-interface HomeProps {
-  user: {
-    email: string;
-    displayName: string;
-    uid: string;
-  };
-}
-
-function Home({ user }: HomeProps) {
+function HomePage() {
   const [currentNetwork, setCurrentNetwork] = useState<Network | null>(null);
   const [networks, setNetworks] = useState<Network[]>(() => []);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
@@ -133,8 +126,8 @@ function Home({ user }: HomeProps) {
   };
 
   return (
-    <main className="App">
-      <Container maxWidth="md" className="app-container">
+    <main className="home">
+      <Container maxWidth="md" className="home-container">
         <Stack direction="column" spacing={2} width="100%">
           <Stack
             direction="row"
@@ -148,7 +141,7 @@ function Home({ user }: HomeProps) {
             <Stack direction="row" spacing={2} alignItems="center">
               <Tooltip title="Networks">
                 <IconButton onClick={handleClick} color="primary" size="large">
-                  <TocOutlinedIcon />
+                  <PeopleAltOutlinedIcon />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Logout">
@@ -166,7 +159,7 @@ function Home({ user }: HomeProps) {
             <FormControl sx={{ flex: 1 }}>
               <InputLabel>Who</InputLabel>
               <Select
-                value={currentNetwork?.nid || "New"}
+                value={currentNetwork?.nid || "New Person"}
                 onChange={(e) =>
                   setCurrentNetwork(
                     networks?.find((n) => n.nid === e.target.value) || null
@@ -175,7 +168,7 @@ function Home({ user }: HomeProps) {
                 label="Who"
                 disabled={isLoading}
               >
-                <MenuItem value="New">New</MenuItem>
+                <MenuItem value="New Person">New Person</MenuItem>
                 {isLoading ? (
                   <MenuItem disabled>Loading...</MenuItem>
                 ) : networks && networks.length > 0 ? (
@@ -264,7 +257,7 @@ function Home({ user }: HomeProps) {
         </Popover>
 
         <Box width="100%" flex="1 1 auto" overflow="hidden">
-          <Chat
+          <ChatPage
             currentNetwork={currentNetwork}
             onNetworkUpdate={fetchNetworks}
             actionType={actionType}
@@ -275,4 +268,4 @@ function Home({ user }: HomeProps) {
   );
 }
 
-export default Home;
+export default HomePage;
