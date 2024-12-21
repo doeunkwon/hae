@@ -88,11 +88,12 @@ function HomePage() {
     const buttonElement = event.currentTarget;
     try {
       const response = await api.get(`/networks/${nid}/contents`);
-      setSelectedNetworkContents(response.data);
+      setSelectedNetworkContents(response.data || []);
       setContentAnchorEl(buttonElement);
       setViewedNetworkId(nid);
     } catch (error) {
       console.error("Failed to fetch network contents:", error);
+      setSelectedNetworkContents([]);
     }
   };
 
@@ -249,11 +250,15 @@ function HomePage() {
             },
           }}
         >
-          <ContentsTable
-            contents={selectedNetworkContents}
-            onDelete={handleDeleteContent}
-            networkId={viewedNetworkId}
-          />
+          {selectedNetworkContents.length > 0 ? (
+            <ContentsTable
+              contents={selectedNetworkContents}
+              onDelete={handleDeleteContent}
+              networkId={viewedNetworkId}
+            />
+          ) : (
+            <Box p={2}>No contents available for this network</Box>
+          )}
         </Popover>
 
         <Box width="100%" flex="1 1 auto" overflow="hidden">
