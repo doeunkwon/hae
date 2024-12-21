@@ -1,4 +1,9 @@
-import { ThemeProvider, CssBaseline } from "@mui/material";
+import {
+  ThemeProvider,
+  CssBaseline,
+  Box,
+  CircularProgress,
+} from "@mui/material";
 import { darkTheme } from "./theme";
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -68,7 +73,23 @@ function App() {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <ThemeProvider theme={darkTheme}>
+        <CssBaseline />
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            gap: 2,
+          }}
+        >
+          <CircularProgress color="primary" size={40} />
+        </Box>
+      </ThemeProvider>
+    );
   }
 
   return (

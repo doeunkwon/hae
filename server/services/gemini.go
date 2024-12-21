@@ -120,8 +120,6 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 			- Adding qualifiers unless absolutely necessary
 	`, name, name, time.Now().Format("January 2, 2006"), name, content, question, name, name, name, name)
 
-	fmt.Println(systemPrompt)
-
 	cs := model.StartChat()
 	cs.History = []*genai.Content{
 		{
