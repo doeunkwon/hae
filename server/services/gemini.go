@@ -96,7 +96,7 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 
 		Today's date is: %s
 
-		My memories about %s:
+		My memories about %s (in chronological order):
 		%s
 
 		Question:
@@ -104,7 +104,9 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 
 		Instructions:
 		- Understand that all content represents my (the user's) direct experiences and interactions with %s
-		- For example, if a memory says "Had coffee and discussed AI", it means I personally had coffee with %s
+		- Each memory is prefixed with a timestamp in [YYYY-MM-DD HH:MM:SS] format
+		- For example, if a memory says "[2024-01-20 15:30:00] Had coffee and discussed AI", it means I personally had coffee with %s on January 20th, 2024
+		- When answering questions about timing or sequence of events, use these timestamps
 		- If memories are provided, base your answer strictly on these personal interactions
 		- If no memories are provided or memories are empty, you may:
 			a) For general knowledge questions (unrelated to %s), answer directly without any reference to memories
@@ -117,6 +119,8 @@ func AnswerQuestion(name, question string, messages []models.Message, contentArr
 			- Prefacing your answer with phrases like "Based on the content..." or "I can tell you that..."
 			- Adding qualifiers unless absolutely necessary
 	`, name, name, time.Now().Format("January 2, 2006"), name, content, question, name, name, name, name)
+
+	fmt.Println(systemPrompt)
 
 	cs := model.StartChat()
 	cs.History = []*genai.Content{

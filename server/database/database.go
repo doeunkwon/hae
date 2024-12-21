@@ -7,6 +7,7 @@ import (
 	"os"
 	"server/models"
 	"server/utils"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -96,9 +97,9 @@ func SaveContent(nid int, content string, userID string, userToken string) error
 	return err
 }
 
-func QueryNetwork(nid int, uid string, userToken string) ([]string, error) {
+func QueryNetwork(nid int, uid string, userToken string, timezone string) ([]string, error) {
 	rows, err := db.Query(`
-		SELECT encrypted_content 
+		SELECT encrypted_content, created_at 
 		FROM content 
 		WHERE nid IN (SELECT nid FROM network WHERE nid = ? AND uid = ?)
 		ORDER BY created_at DESC
@@ -108,19 +109,37 @@ func QueryNetwork(nid int, uid string, userToken string) ([]string, error) {
 	}
 	defer rows.Close()
 
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		log.Printf("Failed to load timezone %s, falling back to UTC: %v", timezone, err)
+		loc = time.UTC
+	}
+
 	var results []string
 	for rows.Next() {
 		var encryptedContent string
-		if err := rows.Scan(&encryptedContent); err != nil {
+		var createdAt string
+		if err := rows.Scan(&encryptedContent, &createdAt); err != nil {
 			return nil, err
 		}
+
+		// Parse the ISO 8601 time from the database
+		utcTime, err := time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			log.Printf("Failed to parse time %s: %v", createdAt, err)
+			continue
+		}
+
+		// Convert to user's timezone
+		localTime := utcTime.In(loc)
 
 		// Decrypt content using user's token
 		content, err := utils.Decrypt(encryptedContent, userToken)
 		if err != nil {
 			continue // Skip if decryption fails
 		}
-		results = append(results, content)
+		// Format the date in local time and combine with content
+		results = append(results, fmt.Sprintf("[%s] %s", localTime.Format("January 2, 2006"), content))
 	}
 
 	return results, nil

@@ -27,6 +27,7 @@ type QueryRequest struct {
 type Response struct {
 	Message string `json:"message"`
 	Answer  string `json:"answer"`
+	Date    string `json:"date"`
 }
 
 type ExtractedInfo struct {

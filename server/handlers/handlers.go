@@ -6,6 +6,7 @@ import (
 	"server/database"
 	"server/models"
 	"server/services"
+	"time"
 
 	"github.com/labstack/echo/v4"
 )
@@ -71,6 +72,22 @@ func SaveInformation(c echo.Context) error {
 func QueryInformation(c echo.Context) error {
 	userID := c.Get("uid").(string)
 	userToken := c.Get("token").(string)
+	timezone := c.Request().Header.Get("X-Timezone")
+	if timezone == "" {
+		timezone = "UTC" // Default to UTC if no timezone is provided
+	}
+
+	// Parse the timezone
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		log.Printf("Invalid timezone: %v, falling back to UTC", err)
+		loc = time.UTC
+	}
+
+	// Get current time in the specified timezone
+	now := time.Now().In(loc)
+	formattedDate := now.Format("January 2, 2006")
+
 	var req models.QueryRequest
 	if err := c.Bind(&req); err != nil {
 		log.Printf("Failed to bind query request: %v", err)
@@ -80,18 +97,15 @@ func QueryInformation(c echo.Context) error {
 	}
 
 	var results []string
-	var err error
 	if req.NID != 0 {
-
 		// Query database with name
-		results, err = database.QueryNetwork(req.NID, userID, userToken)
+		results, err = database.QueryNetwork(req.NID, userID, userToken, timezone)
 		if err != nil {
 			log.Printf("Database query failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
 				Message: "Failed to query database",
 			})
 		}
-
 	}
 
 	answer, err := services.AnswerQuestion(req.Name, req.Query, req.Messages, results)
@@ -105,6 +119,7 @@ func QueryInformation(c echo.Context) error {
 	return c.JSON(http.StatusOK, models.Response{
 		Message: "Query successful",
 		Answer:  answer,
+		Date:    formattedDate,
 	})
 }
 
