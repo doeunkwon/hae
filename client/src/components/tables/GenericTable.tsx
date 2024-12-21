@@ -10,7 +10,6 @@ import {
   useTheme,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 import { useState } from "react";
 import DeleteConfirmationDialog from "../dialogs/DeleteConfirmationDialog";
 
@@ -117,22 +116,24 @@ function GenericTable<T extends { [key: string]: any }>({
                         column.render(item)
                       ) : column.key === "actions" ? (
                         <>
-                          {onAction && actionIcon && (
-                            <IconButton
-                              size="small"
-                              onClick={(e) => onAction(e, item)}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              sx={{
-                                "&:hover": {
-                                  color: "primary.main",
-                                },
-                                marginRight: 1,
-                              }}
-                            >
-                              {actionIcon}
-                            </IconButton>
-                          )}
-                          {onDelete && (
+                          {onAction &&
+                            actionIcon &&
+                            column.header === "Content" && (
+                              <IconButton
+                                size="small"
+                                onClick={(e) => onAction(e, item)}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                sx={{
+                                  "&:hover": {
+                                    color: "primary.main",
+                                  },
+                                  marginRight: 1,
+                                }}
+                              >
+                                {actionIcon}
+                              </IconButton>
+                            )}
+                          {onDelete && column.header === "Delete" && (
                             <IconButton
                               size="small"
                               onClick={(e) => {

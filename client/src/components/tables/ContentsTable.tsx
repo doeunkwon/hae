@@ -12,8 +12,22 @@ function ContentsTable({
   onDelete,
   networkId,
 }: ContentsTableProps) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   const columns = [
     { header: "Content", key: "content" as keyof Content },
+    {
+      header: "When",
+      key: "created_at" as keyof Content,
+      render: (item: Content) => formatDate(item.created_at),
+    },
     { header: "Delete", key: "actions" as const },
   ];
 
@@ -27,7 +41,7 @@ function ContentsTable({
       columns={columns}
       onDelete={handleDelete}
       emptyMessage="No contents available"
-      maxWidth={400}
+      maxWidth={600}
     />
   );
 }

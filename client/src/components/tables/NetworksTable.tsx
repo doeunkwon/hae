@@ -18,7 +18,8 @@ function NetworksTable({
 }: NetworksTableProps) {
   const columns = [
     { header: "Name", key: "name" as keyof Network },
-    { header: "Contents", key: "actions" as const },
+    { header: "Content", key: "actions" as const },
+    { header: "Delete", key: "actions" as const },
   ];
 
   const handleDelete = (network: Network) => {

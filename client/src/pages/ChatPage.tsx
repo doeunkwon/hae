@@ -70,9 +70,9 @@ function ChatPage({
       });
       setInput("");
       if (currentNetwork) {
-        alert("Text updated successfully!");
+        alert("Information saved.");
       } else {
-        alert("Text saved successfully!");
+        alert("Information saved.");
       }
       onNetworkUpdate();
     } catch (error: any) {
@@ -81,7 +81,9 @@ function ChatPage({
         console.error("Error response data:", error.response.data);
         console.error("Error response status:", error.response.status);
         alert(
-          `Error saving text: ${error.response.data.error || "Unknown error"}`
+          `Error saving information: ${
+            error.response.data.error || "Unknown error"
+          }`
         );
       } else if (error.request) {
         console.error("No response received:", error.request);
