@@ -183,3 +183,31 @@ func DeleteContent(c echo.Context) error {
 		"message": "Content deleted successfully",
 	})
 }
+
+func UpdateNetworkName(c echo.Context) error {
+	userID := c.Get("uid").(string)
+	userToken := c.Get("token").(string)
+	nid := c.Param("nid")
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := c.Bind(&req); err != nil {
+		log.Printf("Failed to bind update request: %v", err)
+		return c.JSON(http.StatusBadRequest, models.Response{
+			Message: "Invalid request format",
+		})
+	}
+
+	err := database.UpdateNetworkName(nid, req.Name, userID, userToken)
+	if err != nil {
+		log.Printf("Failed to update network name %s: %v", nid, err)
+		return c.JSON(http.StatusInternalServerError, models.Response{
+			Message: "Failed to update network name",
+		})
+	}
+
+	return c.JSON(http.StatusOK, models.Response{
+		Message: "Network name updated successfully",
+	})
+}

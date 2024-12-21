@@ -256,3 +256,31 @@ func DeleteContent(nid string, cid string, uid string) error {
 
 	return nil
 }
+
+func UpdateNetworkName(nid string, newName string, uid string, userToken string) error {
+	// Encrypt the new name using user's token
+	encryptedName, err := utils.Encrypt(newName, userToken)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt network name: %v", err)
+	}
+
+	result, err := db.Exec(`
+		UPDATE network 
+		SET encrypted_name = ? 
+		WHERE nid = ? AND uid = ?
+	`, encryptedName, nid, uid)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no network found with nid: %s", nid)
+	}
+
+	return nil
+}

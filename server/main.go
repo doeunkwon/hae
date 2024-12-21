@@ -45,6 +45,7 @@ func main() {
 	e.DELETE("/networks/:nid/contents/:cid", handlers.DeleteContent, middle.FirebaseAuth)
 	e.GET("/networks/:nid/contents", handlers.GetNetworkContents, middle.FirebaseAuth)
 	e.DELETE("/networks/:nid", handlers.DeleteNetwork, middle.FirebaseAuth)
+	e.PUT("/networks/:nid/name", handlers.UpdateNetworkName, middle.FirebaseAuth)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":8080"))

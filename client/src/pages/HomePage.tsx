@@ -80,6 +80,22 @@ function HomePage() {
     }
   };
 
+  const handleUpdateNetworkName = async (nid: number, newName: string) => {
+    try {
+      await api.put(`/networks/${nid}/name`, { name: newName });
+      setNetworks((prevNetworks) =>
+        prevNetworks.map((network) =>
+          network.nid === nid ? { ...network, name: newName } : network
+        )
+      );
+      if (currentNetwork?.nid === nid) {
+        setCurrentNetwork((prev) => (prev ? { ...prev, name: newName } : null));
+      }
+    } catch (error) {
+      console.error("Failed to update network name:", error);
+    }
+  };
+
   const handleViewContents = async (
     event: React.MouseEvent<HTMLButtonElement>,
     nid: number
@@ -225,6 +241,7 @@ function HomePage() {
               networks={networks}
               onDelete={handleDeleteNetwork}
               onViewContents={handleViewContents}
+              onUpdateName={handleUpdateNetworkName}
             />
           ) : (
             <Box p={2}>No networks available</Box>
