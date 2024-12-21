@@ -21,12 +21,7 @@ function ChatPage({
   onNetworkUpdate: () => void;
   actionType: "send" | "save";
 }) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hey there 🌞",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
 
   const sendMessage = async (): Promise<void> => {
@@ -146,7 +141,13 @@ function ChatPage({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={
-            actionType === "send" ? "Ask a question" : "Save new information"
+            actionType === "send"
+              ? currentNetwork?.name
+                ? `Ask a question about ${currentNetwork?.name}`
+                : "Ask a question"
+              : currentNetwork?.name
+              ? `Save new information about ${currentNetwork?.name}`
+              : "Save new information"
           }
           onKeyDown={handleKeyPress}
           multiline={true}
