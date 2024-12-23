@@ -6,6 +6,7 @@ import (
 	"server/handlers"
 	"server/middle"
 	"server/services"
+	"server/services/milvus"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -29,6 +30,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error initializing Firebase: %v", err)
 	}
+
+	// Initialize Milvus
+	err = milvus.InitMilvus()
+	if err != nil {
+		log.Fatalf("Error initializing Milvus: %v", err)
+	}
+	defer milvus.Close()
 
 	// Create Echo instance
 	e := echo.New()

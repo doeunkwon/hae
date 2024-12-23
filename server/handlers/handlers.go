@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"server/database"
 	"server/models"
 	"server/services"
+	"server/services/embedder"
+	"server/services/milvus"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -32,6 +36,24 @@ func SaveInformation(c echo.Context) error {
 		})
 	}
 
+	// Get embedder instance
+	embed, err := embedder.GetEmbedder()
+	if err != nil {
+		log.Printf("Failed to get embedder: %v", err)
+		return c.JSON(http.StatusInternalServerError, models.Response{
+			Message: "Failed to initialize embedder",
+		})
+	}
+
+	// Generate embedding for the content
+	vector, err := embed.EmbedText(info.Content)
+	if err != nil {
+		log.Printf("Failed to generate embedding: %v", err)
+		return c.JSON(http.StatusInternalServerError, models.Response{
+			Message: "Failed to generate embedding",
+		})
+	}
+
 	if req.NID == 0 {
 		// Save new network
 		nid, err := database.SaveNetwork(info.Name, userID, userToken)
@@ -43,11 +65,20 @@ func SaveInformation(c echo.Context) error {
 		}
 
 		// Save content for the new network
-		err = database.SaveContent(int(nid), info.Content, userID, userToken)
+		cid, err := database.SaveContent(int(nid), info.Content, userID, userToken)
 		if err != nil {
 			log.Printf("Database content save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
 				Message: "Failed to save content",
+			})
+		}
+
+		// Store vector in Milvus
+		err = milvus.InsertVector(context.Background(), cid, vector)
+		if err != nil {
+			log.Printf("Failed to store vector in Milvus: %v", err)
+			return c.JSON(http.StatusInternalServerError, models.Response{
+				Message: "Failed to store vector",
 			})
 		}
 
@@ -56,13 +87,23 @@ func SaveInformation(c echo.Context) error {
 		})
 	} else {
 		// Add new content to existing network
-		err = database.SaveContent(req.NID, info.Content, userID, userToken)
+		cid, err := database.SaveContent(req.NID, info.Content, userID, userToken)
 		if err != nil {
 			log.Printf("Database content save failed: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
 				Message: "Failed to save content",
 			})
 		}
+
+		// Store vector in Milvus
+		err = milvus.InsertVector(context.Background(), cid, vector)
+		if err != nil {
+			log.Printf("Failed to store vector in Milvus: %v", err)
+			return c.JSON(http.StatusInternalServerError, models.Response{
+				Message: "Failed to store vector",
+			})
+		}
+
 		return c.JSON(http.StatusOK, models.Response{
 			Message: "Information added successfully",
 		})
@@ -97,16 +138,65 @@ func QueryInformation(c echo.Context) error {
 	}
 
 	var results []string
-	if req.NID != 0 {
-		// Query database with name
-		results, err = database.QueryNetwork(req.NID, userID, userToken, timezone)
+	if req.NID != 0 && req.Query != "" {
+		// Get embedder instance
+		embed, err := embedder.GetEmbedder()
 		if err != nil {
-			log.Printf("Database query failed: %v", err)
+			log.Printf("Failed to get embedder: %v", err)
 			return c.JSON(http.StatusInternalServerError, models.Response{
-				Message: "Failed to query database",
+				Message: "Failed to initialize embedder",
 			})
 		}
+
+		// Generate embedding for the query
+		queryVector, err := embed.EmbedText(req.Query)
+		if err != nil {
+			log.Printf("Failed to generate embedding: %v", err)
+			return c.JSON(http.StatusInternalServerError, models.Response{
+				Message: "Failed to generate embedding",
+			})
+		}
+
+		// Search for similar vectors in Milvus
+		contentIDs, distances, err := milvus.SearchSimilar(context.Background(), queryVector, 5) // Get top 5 similar results
+		if err != nil {
+			log.Printf("Failed to search vectors: %v", err)
+			return c.JSON(http.StatusInternalServerError, models.Response{
+				Message: "Failed to search similar content",
+			})
+		}
+
+		// If we found similar content
+		if len(contentIDs) > 0 {
+			// Get the relevant content from the database
+			contents, err := database.GetContentsByIDs(req.NID, contentIDs, userID, userToken)
+			if err != nil {
+				log.Printf("Failed to get contents: %v", err)
+				return c.JSON(http.StatusInternalServerError, models.Response{
+					Message: "Failed to get relevant content",
+				})
+			}
+
+			// Filter out results with low similarity (high distance)
+			const maxDistance float32 = 1.5 // Lower threshold for stricter matching
+			for i, content := range contents {
+				if i < len(distances) && distances[i] < maxDistance {
+					similarity := 1.0 - (distances[i] / 2.0) // Convert distance to similarity score (0-1)
+					results = append(results, fmt.Sprintf("%s [similarity: %.2f]", content, similarity))
+				}
+			}
+
+			if len(results) == 0 {
+				log.Printf("No memories met the similarity threshold (max distance: %.2f) for query: %s", maxDistance, req.Query)
+			} else {
+				log.Printf("Found %d relevant memories for query: %s", len(results), req.Query)
+			}
+		} else {
+			log.Printf("No similar vectors found in Milvus for query: %s", req.Query)
+		}
 	}
+
+	fmt.Println("Content: ", results)
 
 	answer, err := services.AnswerQuestion(req.Name, req.Query, req.Messages, results)
 	if err != nil {

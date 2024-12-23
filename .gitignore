@@ -17,6 +17,7 @@ client/yarn-error.log*
 # Server
 server/.env
 server/database/db.sqlite
+server/volumes/
 
 # IDEs and editors
 .idea/
@@ -28,3 +29,4 @@ server/database/db.sqlite
 .settings/
 *.sublime-workspace
 *.sublime-project
+.venv/

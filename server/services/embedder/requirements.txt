@@ -1,0 +1,5 @@
+numpy<2.0.0
+setuptools>=65.5.1
+sentence-transformers==2.2.2
+huggingface-hub==0.19.4
+torch==2.1.2 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"server/models"
 	"server/utils"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -85,16 +86,20 @@ func SaveNetwork(name string, uid string, userToken string) (int64, error) {
 	return nid, nil
 }
 
-func SaveContent(nid int, content string, userID string, userToken string) error {
+func SaveContent(nid int, content string, userID string, userToken string) (int64, error) {
 	// Encrypt content using user's token
 	encryptedContent, err := utils.Encrypt(content, userToken)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	query := `INSERT INTO content (nid, encrypted_content, uid) VALUES (?, ?, ?)`
-	_, err = db.Exec(query, nid, encryptedContent, userID)
-	return err
+	result, err := db.Exec(query, nid, encryptedContent, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	return result.LastInsertId()
 }
 
 func QueryNetwork(nid int, uid string, userToken string, timezone string) ([]string, error) {
@@ -283,4 +288,54 @@ func UpdateNetworkName(nid string, newName string, uid string, userToken string)
 	}
 
 	return nil
+}
+
+// GetContentsByIDs retrieves content for specific content IDs
+func GetContentsByIDs(nid int, contentIDs []int64, uid string, userToken string) ([]string, error) {
+	// Convert contentIDs to a string for the IN clause
+	idStrings := make([]string, len(contentIDs))
+	for i, id := range contentIDs {
+		idStrings[i] = fmt.Sprintf("%d", id)
+	}
+	idList := strings.Join(idStrings, ",")
+
+	query := fmt.Sprintf(`
+		SELECT encrypted_content, created_at 
+		FROM content 
+		WHERE nid = ? AND uid = ? AND cid IN (%s)
+		ORDER BY created_at DESC
+	`, idList)
+
+	rows, err := db.Query(query, nid, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []string
+	for rows.Next() {
+		var encryptedContent string
+		var createdAt string
+		if err := rows.Scan(&encryptedContent, &createdAt); err != nil {
+			return nil, err
+		}
+
+		// Parse the ISO 8601 time from the database
+		utcTime, err := time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			log.Printf("Failed to parse time %s: %v", createdAt, err)
+			continue
+		}
+
+		// Decrypt content using user's token
+		content, err := utils.Decrypt(encryptedContent, userToken)
+		if err != nil {
+			continue // Skip if decryption fails
+		}
+
+		// Format the date and combine with content
+		results = append(results, fmt.Sprintf("[%s] %s", utcTime.Format("2006-01-02 15:04:05"), content))
+	}
+
+	return results, nil
 }
