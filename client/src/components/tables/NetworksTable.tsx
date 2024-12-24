@@ -1,6 +1,6 @@
 import { Network } from "../../types/api";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
-import EditIcon from "@mui/icons-material/Edit";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import GenericTable from "./GenericTable";
 import { IconButton, TextField } from "@mui/material";
 import { useState } from "react";
@@ -73,7 +73,7 @@ function NetworksTable({
             },
           }}
         >
-          <EditIcon fontSize="small" />
+          <EditOutlinedIcon fontSize="small" />
         </IconButton>
       ),
     },

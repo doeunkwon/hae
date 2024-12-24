@@ -12,6 +12,16 @@ import api from "../utils/api";
 import "../styles/Chat.css";
 import { Message, Network } from "../types/api";
 
+interface QueryResponse {
+  answer: string;
+  message: string;
+  date: string;
+}
+
+interface SaveResponse {
+  message: string;
+}
+
 function ChatPage({
   currentNetwork,
   onNetworkUpdate,
@@ -36,15 +46,12 @@ function ChatPage({
     setInput("");
 
     try {
-      const response = await api.post<{ message: string; answer: string }>(
-        "/query",
-        {
-          query: input,
-          name: currentNetwork?.name || "",
-          nid: currentNetwork?.nid || 0,
-          messages: messages,
-        }
-      );
+      const response = await api.post<QueryResponse>("/api/v1/query", {
+        query: input,
+        name: currentNetwork?.name || "",
+        nid: currentNetwork?.nid || 0,
+        messages: messages,
+      });
 
       setMessages([
         ...newMessages,
@@ -59,16 +66,12 @@ function ChatPage({
     if (!input.trim()) return;
 
     try {
-      await api.post("/save", {
+      const response = await api.post<SaveResponse>("/api/v1/save", {
         nid: currentNetwork?.nid || 0,
         text: input,
       });
       setInput("");
-      if (currentNetwork) {
-        alert("Information saved.");
-      } else {
-        alert("Information saved.");
-      }
+      alert(response.data.message);
       onNetworkUpdate();
     } catch (error: any) {
       console.error("Error saving text:", error);
@@ -77,7 +80,7 @@ function ChatPage({
         console.error("Error response status:", error.response.status);
         alert(
           `Error saving information: ${
-            error.response.data.error || "Unknown error"
+            error.response.data.detail || "Unknown error"
           }`
         );
       } else if (error.request) {

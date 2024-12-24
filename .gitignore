@@ -18,6 +18,9 @@ client/yarn-error.log*
 server/.env
 server/database/db.sqlite
 server/volumes/
+server/**/__pycache__/
+server/**/__init__.py
+
 
 # IDEs and editors
 .idea/

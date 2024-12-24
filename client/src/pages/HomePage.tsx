@@ -23,6 +23,10 @@ import ChatPage from "./ChatPage";
 import api from "../utils/api";
 import "../styles/Home.css";
 
+interface Response {
+  message: string;
+}
+
 function HomePage() {
   const [currentNetwork, setCurrentNetwork] = useState<Network | null>(null);
   const [networks, setNetworks] = useState<Network[]>(() => []);
@@ -39,7 +43,7 @@ function HomePage() {
   const fetchNetworks = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get("/networks");
+      const response = await api.get<Network[]>("/api/v1/networks/");
       setNetworks(response.data);
     } catch (error) {
       console.error("Error fetching networks:", error);
@@ -68,13 +72,14 @@ function HomePage() {
 
   const handleDeleteNetwork = async (nid: number) => {
     try {
-      await api.delete(`/networks/${nid}`);
+      const response = await api.delete<Response>(`/api/v1/networks/${nid}`);
       setNetworks((prevNetworks) =>
         prevNetworks ? prevNetworks.filter((n) => n.nid !== nid) : []
       );
       if (currentNetwork?.nid === nid) {
         setCurrentNetwork(null);
       }
+      console.log(response.data.message);
     } catch (error) {
       console.error("Failed to delete network:", error);
     }
@@ -82,7 +87,9 @@ function HomePage() {
 
   const handleUpdateNetworkName = async (nid: number, newName: string) => {
     try {
-      await api.put(`/networks/${nid}/name`, { name: newName });
+      const response = await api.put<Response>(`/api/v1/networks/${nid}/name`, {
+        name: newName,
+      });
       setNetworks((prevNetworks) =>
         prevNetworks.map((network) =>
           network.nid === nid ? { ...network, name: newName } : network
@@ -91,6 +98,7 @@ function HomePage() {
       if (currentNetwork?.nid === nid) {
         setCurrentNetwork((prev) => (prev ? { ...prev, name: newName } : null));
       }
+      console.log(response.data.message);
     } catch (error) {
       console.error("Failed to update network name:", error);
     }
@@ -103,7 +111,9 @@ function HomePage() {
     event.stopPropagation();
     const buttonElement = event.currentTarget;
     try {
-      const response = await api.get(`/networks/${nid}/contents`);
+      const response = await api.get<Content[]>(
+        `/api/v1/networks/${nid}/contents`
+      );
       setSelectedNetworkContents(response.data || []);
       setContentAnchorEl(buttonElement);
       setViewedNetworkId(nid);
@@ -125,10 +135,13 @@ function HomePage() {
         console.error("No network ID available");
         return;
       }
-      await api.delete(`/networks/${networkId}/contents/${cid}`);
+      const response = await api.delete<{ message: string }>(
+        `/api/v1/networks/${networkId}/contents/${cid}`
+      );
       setSelectedNetworkContents(
         selectedNetworkContents.filter((content) => content.cid !== cid)
       );
+      console.log(response.data.message);
     } catch (error) {
       console.error("Failed to delete content:", error);
     }
