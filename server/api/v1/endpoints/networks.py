@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from crud import network, content
 from schemas.network import Network, NetworkUpdate
-from schemas.content import Content
+from schemas.content import Content, ContentCreate
 from core.firebase import get_current_user
 from database.db import get_db
 import logging
@@ -31,6 +31,9 @@ async def read_networks(
     """
     try:
         networks = network.get_by_user(db, user_id=current_user["uid"])
+        # Decrypt network names before sending to client
+        for net in networks:
+            net.name = net.get_decrypted_name(current_user["uid"])
         return networks
     except Exception as e:
         logger.error(f"Failed to get networks for user {
@@ -115,6 +118,9 @@ async def read_network_contents(
 
         contents = content.get_by_network(
             db, network_id=nid, user_id=current_user["uid"])
+        # Decrypt content before sending to client
+        for cont in contents:
+            cont.content = cont.get_decrypted_content(current_user["uid"])
         return contents
     except Exception as e:
         logger.error(f"Failed to fetch contents for network {
@@ -122,6 +128,38 @@ async def read_network_contents(
         raise HTTPException(
             status_code=500,
             detail="Failed to fetch network contents"
+        )
+
+
+@router.post("/{nid}/contents", response_model=Content)
+async def create_content(
+    *,
+    db: Session = Depends(get_db),
+    nid: int,
+    content_in: ContentCreate,
+    current_user: dict = Depends(get_current_user)
+) -> Any:
+    """
+    Create new content in network.
+    """
+    try:
+        db_network = network.get_user_network(
+            db, user_id=current_user["uid"], nid=nid)
+        if not db_network:
+            raise HTTPException(status_code=404, detail="Network not found")
+
+        db_content = content.create_with_user(
+            db, obj_in=content_in, user_id=current_user["uid"])
+        # Decrypt content before sending response
+        db_content.content = db_content.get_decrypted_content(
+            current_user["uid"])
+        return db_content
+    except Exception as e:
+        logger.error(f"Failed to create content in network {
+                     nid} for user {current_user['uid']}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create content"
         )
 
 

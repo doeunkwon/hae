@@ -75,7 +75,10 @@ async def process_query(
         # Get all contents for this network
         contents = content.get_by_network(
             db, network_id=query_in.nid, user_id=current_user["uid"])
-        relevant_contents = [c.content for c in contents]
+
+        # Decrypt contents before processing
+        relevant_contents = [c.get_decrypted_content(
+            current_user["uid"]) for c in contents]
 
         # Process query using LLM
         answer = answer_question(
@@ -116,12 +119,14 @@ async def save_content(
         if not save_in.nid:
             # Create new network flow
             try:
+                # Network name will be encrypted in create_with_user
                 network_create = NetworkCreate(name=extracted_info.name)
                 db_network = network.create_with_user(
                     db, obj_in=network_create, user_id=current_user["uid"])
                 logger.info(f"Created new network {
                             db_network.nid} for user {current_user['uid']}")
 
+                # Content will be encrypted in create_with_user
                 content_create = ContentCreate(
                     content=extracted_info.content, network_id=db_network.nid)
                 content.create_with_user(
@@ -143,6 +148,7 @@ async def save_content(
                     status_code=404, detail="Network not found")
 
             try:
+                # Content will be encrypted in create_with_user
                 content_create = ContentCreate(
                     content=extracted_info.content, network_id=save_in.nid)
                 content.create_with_user(
