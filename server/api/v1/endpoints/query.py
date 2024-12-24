@@ -9,7 +9,7 @@ from schemas.network import NetworkCreate
 from schemas.content import ContentCreate
 from core.firebase import get_current_user
 from database.db import get_db
-from services.llm import extract_information, answer_question, Message
+from services.llm import extract_information, answer_question, Message, summarize_content
 import logging
 
 logger = logging.getLogger(__name__)
@@ -76,9 +76,16 @@ async def process_query(
         contents = content.get_by_network(
             db, network_id=query_in.nid, user_id=current_user["uid"])
 
-        # Decrypt contents before processing
-        relevant_contents = [c.get_decrypted_content(
-            current_user["uid"]) for c in contents]
+        # Decrypt contents and add timestamps before processing
+        relevant_contents = []
+        for c in contents:
+            decrypted_content = c.get_decrypted_content(current_user["uid"])
+            # Add timestamp if not already present
+            # Basic check for timestamp format
+            if not decrypted_content.startswith("[20"):
+                timestamp = c.created_at.strftime("[%Y-%m-%d %H:%M:%S]")
+                decrypted_content = f"{timestamp} {decrypted_content}"
+            relevant_contents.append(decrypted_content)
 
         # Process query using LLM
         answer = answer_question(
@@ -113,12 +120,12 @@ async def save_content(
     Save content to a network.
     """
     try:
-        # Extract information using Gemini
-        extracted_info = extract_information(save_in.text)
-
         if not save_in.nid:
-            # Create new network flow
+            # Create new network flow - extract both name and content
             try:
+                # Extract information using Gemini
+                extracted_info = extract_information(save_in.text)
+
                 # Network name will be encrypted in create_with_user
                 network_create = NetworkCreate(name=extracted_info.name)
                 db_network = network.create_with_user(
@@ -138,7 +145,7 @@ async def save_content(
                              current_user['uid']}: {str(e)}")
                 raise
         else:
-            # Add to existing network flow
+            # Add to existing network flow - just add the content as is
             db_network = network.get_user_network(
                 db, user_id=current_user["uid"], nid=save_in.nid)
             if not db_network:
@@ -150,7 +157,7 @@ async def save_content(
             try:
                 # Content will be encrypted in create_with_user
                 content_create = ContentCreate(
-                    content=extracted_info.content, network_id=save_in.nid)
+                    content=summarize_content(save_in.text), network_id=save_in.nid)
                 content.create_with_user(
                     db, obj_in=content_create, user_id=current_user["uid"])
                 logger.info(f"Added new content to network {

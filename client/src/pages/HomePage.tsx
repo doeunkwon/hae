@@ -185,7 +185,9 @@ function HomePage() {
             <FormControl sx={{ flex: 1 }}>
               <InputLabel>Who</InputLabel>
               <Select
-                value={currentNetwork?.nid || "New Person"}
+                value={
+                  isLoading || !networks.length ? 0 : currentNetwork?.nid ?? 0
+                }
                 onChange={(e) =>
                   setCurrentNetwork(
                     networks?.find((n) => n.nid === e.target.value) || null
@@ -194,7 +196,9 @@ function HomePage() {
                 label="Who"
                 disabled={isLoading}
               >
-                <MenuItem value="New Person">New Person</MenuItem>
+                <MenuItem key={0} value={0}>
+                  New Person
+                </MenuItem>
                 {isLoading ? (
                   <MenuItem disabled>Loading...</MenuItem>
                 ) : networks && networks.length > 0 ? (

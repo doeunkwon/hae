@@ -100,16 +100,14 @@ def answer_question(name: str, question: str, messages: List[Message], content_a
         # Combine the content array into a single string
         content = "\n".join(content_array)
 
-        system_prompt = f"""
+        # Create the instructions
+        instructions = f"""
             You are a knowledgeable assistant helping me recall information about {name}. These are my personal memories and interactions with {name}.
 
             Today's date is: {datetime.now().strftime('%B %d, %Y')}
 
             My memories about {name} (in chronological order):
             {content}
-
-            Question:
-            {question}
 
             Instructions:
             - Understand that all content represents my (the user's) direct experiences and interactions with {name}
@@ -127,18 +125,25 @@ def answer_question(name: str, question: str, messages: List[Message], content_a
                 - Mentioning what information was or wasn't provided
                 - Prefacing your answer with phrases like "Based on the content..." or "I can tell you that..."
                 - Adding qualifiers unless absolutely necessary
+
+            Respond with 'UNDERSTOOD' if you acknowledge these instructions.
         """
 
-        chat = model.start_chat(history=[])
+        # Convert messages to the format expected by Gemini
+        chat = model.start_chat()
 
-        # Add system prompt
-        chat.send_message(system_prompt)
+        # First, send instructions and verify acknowledgment
+        response = chat.send_message(instructions)
+        if not response.text or "UNDERSTOOD" not in response.text.upper():
+            logger.error(f"Model did not acknowledge instructions properly: {
+                         response.text}")
+            raise ValueError("Model failed to acknowledge instructions")
 
-        # Add message history
+        # Then send previous chat history if it exists
         for message in messages:
-            chat.send_message(message.content, role=message.role)
+            chat.send_message(message.content)
 
-        # Send the question and get response
+        # Finally send the current question and get response
         response = chat.send_message(question)
         if response.text:
             return response.text
@@ -149,3 +154,40 @@ def answer_question(name: str, question: str, messages: List[Message], content_a
         logger.error(f"Error answering question about {name}: {str(e)}\nQuestion: {
                      question}\nContent array length: {len(content_array)}")
         raise Exception(f"Failed to generate content: {str(e)}")
+
+
+def summarize_content(input_text: str) -> str:
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        model.temperature = 0
+
+        prompt = f"""
+            You are a personal CRM assistant. Summarize the following interaction in a clear, concise way.
+
+            Interaction: {input_text}
+
+            Rules:
+            - Keep the summary brief but include all key information
+            - Focus on facts and events
+            - Maintain the original meaning and sentiment
+            - Use clear, direct language
+            - Return ONLY the summary text, no other text or formatting
+        """
+
+        response = model.generate_content(prompt)
+        summary = response.text.strip()
+
+        # Remove any markdown formatting if present
+        if summary.startswith("```") and summary.endswith("```"):
+            lines = summary.split("\n")
+            if len(lines) > 2:
+                summary = "\n".join(lines[1:-1])
+            else:
+                summary = summary.replace("```", "")
+
+        return summary.strip()
+
+    except Exception as e:
+        logger.error(f"Error summarizing content: {
+                     str(e)}\nInput text: {input_text}")
+        raise Exception(f"Failed to summarize content: {str(e)}")
