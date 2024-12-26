@@ -15,7 +15,7 @@ Welcome to Hae, the personal CRM app that makes managing your network as easy as
 ### Prerequisites
 
 - Node.js and npm
-- Python 3.x
+- Python 3.x (less than 3.13)
 - Firebase account
 
 ### Setup Instructions
