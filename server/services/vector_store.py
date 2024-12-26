@@ -63,10 +63,11 @@ class VectorStore:
         metadata: Optional[List[dict]] = None
     ):
         """
-        Add or update documents in the vector store using LangChain
+        Add or update documents in the vector store using LangChain.
+        Only stores embeddings and metadata, not the original text content.
 
         Args:
-            documents: List of text content to add
+            documents: List of text content to generate embeddings from
             network_id: Network ID these documents belong to (UUID)
             document_ids: Optional list of unique IDs for the documents
             metadata: Optional list of metadata dicts for each document
@@ -85,23 +86,21 @@ class VectorStore:
                     meta["content_id"] = str(meta["content_id"])
 
         try:
-            # Create LangChain documents
-            langchain_docs = [
-                Document(
-                    page_content=doc,
-                    metadata={"id": doc_id, **meta}
-                )
-                for doc, doc_id, meta in zip(documents, document_ids, metadata)
-            ]
+            # Generate embeddings directly using the embedding function
+            embeddings = self.embedding_function.embed_documents(documents)
 
-            # Add documents using LangChain
-            self.vectorstore.add_documents(langchain_docs)
+            # Add embeddings and metadata to ChromaDB without storing original text
+            self.vectorstore._collection.add(
+                embeddings=embeddings,
+                ids=document_ids,
+                metadatas=metadata
+            )
 
-            logger.info(
-                f"Added {len(documents)} documents to ChromaDB for network {network_id}")
+            logger.info(f"Added embeddings for {
+                        len(documents)} documents to ChromaDB for network {network_id}")
 
         except Exception as e:
-            logger.error(f"Error adding documents to vector store: {str(e)}")
+            logger.error(f"Error adding embeddings to vector store: {str(e)}")
             logger.error(f"Failed document IDs: {document_ids}")
             raise
 
@@ -112,12 +111,12 @@ class VectorStore:
         min_relevance_score: float = 0.0
     ) -> List[dict]:
         """
-        Query the vector store for relevant documents using LangChain
+        Query the vector store for relevant documents using LangChain.
+        Returns metadata and relevance scores only, as content is stored encrypted in SQL.
 
         Args:
             query_text: The query text to search for
             network_id: Network ID to filter results (UUID)
-            n_results: Number of results to return
             min_relevance_score: Minimum relevance score (0 to 1) for a document to be included
 
         Returns:
@@ -127,23 +126,27 @@ class VectorStore:
             logger.info(f"Querying ChromaDB for network {
                         network_id} with query: '{query_text}'")
 
-            # Use LangChain's similarity search with score
-            results = self.vectorstore.similarity_search_with_score(
-                query_text,
-                k=N_RESULTS,
-                filter={"network_id": str(network_id)}
+            # Generate query embedding
+            query_embedding = self.embedding_function.embed_query(query_text)
+
+            # Query ChromaDB directly with embedding
+            results = self.vectorstore._collection.query(
+                query_embeddings=[query_embedding],
+                n_results=N_RESULTS,
+                where={"network_id": str(network_id)},
+                include=["metadatas", "distances"]
             )
 
             documents = []
-            for doc, distance in results:
-                # Convert distance to similarity score
-                relevance_score = 1 / (1 + distance)
-                if relevance_score >= min_relevance_score:
-                    documents.append({
-                        "content": doc.page_content,
-                        "metadata": doc.metadata,
-                        "relevance_score": relevance_score
-                    })
+            if results["distances"] and results["metadatas"]:
+                for distance, metadata in zip(results["distances"][0], results["metadatas"][0]):
+                    # Convert distance to similarity score
+                    relevance_score = 1 / (1 + distance)
+                    if relevance_score >= min_relevance_score:
+                        documents.append({
+                            "metadata": metadata,
+                            "relevance_score": relevance_score
+                        })
 
             # Sort by relevance score
             documents.sort(key=lambda x: x['relevance_score'], reverse=True)

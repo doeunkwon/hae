@@ -145,14 +145,9 @@ def answer_question(name: str, question: str, messages: List[Message], content_a
         # Create chat instance
         chat = model.start_chat()
 
-        print("\n=== Starting new conversation ===")
-
         # Send static instructions first if this is a new conversation
         if not messages:
-            print("\nSending initial instructions...")
-            print(f"SYSTEM: {STATIC_INSTRUCTIONS}")
             response = chat.send_message(STATIC_INSTRUCTIONS)
-            print(f"ASSISTANT: {response.text}")
             if not response.text or "UNDERSTOOD" not in response.text.upper():
                 logger.error(f"Model did not acknowledge instructions properly: {
                              response.text}")
@@ -164,7 +159,6 @@ def answer_question(name: str, question: str, messages: List[Message], content_a
             date=datetime.now().strftime('%B %d, %Y'),
             content=content
         )
-        print(f"\nSYSTEM: {context}")
         context_response = chat.send_message(context)
         if not context_response.text:
             logger.error("Empty response when sending context")
@@ -172,22 +166,18 @@ def answer_question(name: str, question: str, messages: List[Message], content_a
 
         # Send previous chat history
         if messages:
-            print("\n=== Previous conversation history ===")
             for message in messages:
                 if not message.content.strip():
                     continue  # Skip empty messages
-                print(f"{message.role.upper()}: {message.content}")
                 chat.send_message(message.content)
 
         # Finally send the current question and get response
-        print(f"\nUSER: {question}")
         response = chat.send_message(question)
         if not response or not response.text or not response.text.strip():
             logger.error(
                 f"Empty response from Gemini for question about {name}")
             raise ValueError("No valid response generated")
 
-        print(f"ASSISTANT: {response.text}")
         return response.text.strip()
 
     except Exception as e:
@@ -272,13 +262,9 @@ def determine_action_type(input_text: str) -> str:
             result = json.loads(text)
             if "action" in result and result["action"] in ["ask", "save"]:
                 action = result["action"]
-                print(f"LLM classified text as '{
-                    action}': {input_text[:100]}...")
                 return action
             else:
                 logger.error(f"Invalid action type in response: {text}")
-                print(f"Defaulting to 'ask' for text: {
-                    input_text[:100]}...")
                 return "ask"  # Default to ask if response is invalid
         except json.JSONDecodeError:
             logger.error(f"Failed to parse response as JSON: {text}")
