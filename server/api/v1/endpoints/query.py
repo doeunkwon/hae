@@ -13,6 +13,7 @@ from database.db import get_db
 from core.vector_store import get_vector_store
 from services.llm import extract_information, answer_question, Message, summarize_content
 import logging
+from config import N_RESULTS
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ async def process_query(
     """
     Process a query about a network using semantic search to find relevant content.
     """
-    print(f"Processing query for network {query_in.nid}")
+
     try:
         # Parse the timezone
         try:
@@ -76,28 +77,18 @@ async def process_query(
             raise HTTPException(status_code=404, detail="Network not found")
 
         # Use vector store to find relevant content
-        print(f"Getting vector store for network {query_in.nid}")
+
         vector_store = get_vector_store()
         try:
-            print(f"Querying vector store for network {query_in.nid}")
             relevant_docs = vector_store.query_documents(
                 query_text=query_in.query,
                 network_id=query_in.nid,
-                n_results=3,  # Get more potential matches
                 min_relevance_score=0.3  # Only include somewhat relevant matches
             )
-            print(f"Found {len(relevant_docs)} relevant documents")
-            print("\nRelevant documents from vector store (sorted by relevance):")
-            for i, doc in enumerate(relevant_docs, 1):
-                print(f"\nDocument {i}:")
-                print(f"Content: {doc['content']}")
-                print(f"Relevance Score: {doc['relevance_score']:.4f}")
-                print(f"Metadata: {doc['metadata']}")
 
             # Get content IDs from the results
             content_ids = [doc['metadata']['content_id']
                            for doc in relevant_docs]
-            print(f"\nFetching contents with IDs: {content_ids}")
 
             # Fetch full content from database for these IDs
             relevant_contents = []
@@ -112,8 +103,6 @@ async def process_query(
                             "[%Y-%m-%d %H:%M:%S]")
                         decrypted_content = f"{timestamp} {decrypted_content}"
                     relevant_contents.append(decrypted_content)
-                    print(f"\nFetched and decrypted content {content_id}:")
-                    print(decrypted_content)
 
             if not relevant_contents:
                 logger.warning(

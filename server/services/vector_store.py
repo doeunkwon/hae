@@ -6,9 +6,10 @@ import logging
 from datetime import datetime
 from uuid import UUID
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain.schema import Document
 from dotenv import load_dotenv
+from config import N_RESULTS
 
 # Load environment variables
 load_dotenv()
@@ -108,7 +109,6 @@ class VectorStore:
         self,
         query_text: str,
         network_id: UUID,
-        n_results: int = 3,
         min_relevance_score: float = 0.0
     ) -> List[dict]:
         """
@@ -130,7 +130,7 @@ class VectorStore:
             # Use LangChain's similarity search with score
             results = self.vectorstore.similarity_search_with_score(
                 query_text,
-                k=n_results,
+                k=N_RESULTS,
                 filter={"network_id": str(network_id)}
             )
 
