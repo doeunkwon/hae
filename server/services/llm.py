@@ -100,8 +100,11 @@ STATIC_INSTRUCTIONS = """
     - Understand that all content represents direct experiences and interactions
     - Each memory is prefixed with a timestamp in [YYYY-MM-DD HH:MM:SS] format
     - When answering questions about timing or sequence of events, use these timestamps
-    - Base answers strictly on provided personal interactions
-    - Never make up or assume interactions that aren't explicitly mentioned
+    - Primarily base answers on provided personal interactions
+    - If there isn't enough information in the provided content:
+        - Use your general knowledge to provide a helpful response
+        - Make it clear when you're going beyond the personal interactions
+        - Still never make up specific facts about the person
     - Provide direct answers without:
         - Explaining why you know something
         - Mentioning what information was or wasn't provided

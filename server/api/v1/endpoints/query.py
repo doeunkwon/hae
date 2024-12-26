@@ -22,8 +22,8 @@ router = APIRouter()
 
 class QueryRequest(BaseModel):
     query: str
-    name: str
-    nid: UUID
+    name: str = "Assistant"
+    nid: Optional[UUID] = None
     messages: List[Message]
 
 
@@ -55,9 +55,9 @@ async def process_query(
     timezone: str = "UTC"
 ) -> Any:
     """
-    Process a query about a network using semantic search to find relevant content.
+    Process a query using semantic search for network content if provided, 
+    or general knowledge if no network is selected.
     """
-
     try:
         # Parse the timezone
         try:
@@ -71,77 +71,84 @@ async def process_query(
         now = datetime.now(tz)
         formatted_date = now.strftime("%B %d, %Y")
 
-        if not query_in.nid:
-            logger.error(f"Missing network ID in query request from user {
-                         current_user['uid']}")
-            raise HTTPException(
-                status_code=400, detail="Network ID is required")
-
-        db_network = network.get_user_network(
-            db, user_id=current_user["uid"], nid=query_in.nid)
-        if not db_network:
-            logger.error(f"Network {query_in.nid} not found for user {
-                         current_user['uid']}")
-            raise HTTPException(status_code=404, detail="Network not found")
-
-        # Get all relevant contents, either from vector store or traditional retrieval
         relevant_contents = []
 
-        # Try vector store first
-        try:
-            vector_store = get_vector_store()
-            relevant_docs = vector_store.query_documents(
-                query_text=query_in.query,
-                network_id=query_in.nid,
-                min_relevance_score=0.3  # Only include somewhat relevant matches
-            )
+        # Only query network content if nid is provided
+        if query_in.nid:
+            db_network = network.get_user_network(
+                db, user_id=current_user["uid"], nid=query_in.nid)
+            if not db_network:
+                logger.error(f"Network {query_in.nid} not found for user {
+                             current_user['uid']}")
+                raise HTTPException(
+                    status_code=404, detail="Network not found")
 
-            # Get content IDs from the results
-            content_ids = [doc['metadata']['content_id']
-                           for doc in relevant_docs]
+            # Get all relevant contents, either from vector store or traditional retrieval
+            # Try vector store first
+            try:
+                vector_store = get_vector_store()
+                relevant_docs = vector_store.query_documents(
+                    query_text=query_in.query,
+                    network_id=query_in.nid,
+                    min_relevance_score=0.3  # Only include somewhat relevant matches
+                )
 
-            # Fetch full content from database for these IDs
-            for content_id in content_ids:
-                db_content = content.get(db, id=content_id)
-                if db_content and db_content.network_id == query_in.nid:
-                    decrypted_content = db_content.get_decrypted_content(
+                # Get content IDs from the results
+                content_ids = [doc['metadata']['content_id']
+                               for doc in relevant_docs]
+
+                # Fetch full content from database for these IDs
+                for content_id in content_ids:
+                    db_content = content.get(db, id=content_id)
+                    if db_content and db_content.network_id == query_in.nid:
+                        decrypted_content = db_content.get_decrypted_content(
+                            current_user["uid"])
+                        # Add timestamp if not already present
+                        if not decrypted_content.startswith("[20"):
+                            timestamp = db_content.created_at.strftime(
+                                "[%Y-%m-%d %H:%M:%S]")
+                            decrypted_content = f"{
+                                timestamp} {decrypted_content}"
+                        relevant_contents.append(decrypted_content)
+
+            except Exception as e:
+                logger.error(f"Error querying vector store for network {
+                             query_in.nid}: {str(e)}")
+                logger.info("Falling back to traditional content retrieval")
+
+                # Fallback to traditional content retrieval
+                contents = content.get_by_network(
+                    db, network_id=query_in.nid, user_id=current_user["uid"])
+                for c in contents:
+                    decrypted_content = c.get_decrypted_content(
                         current_user["uid"])
-                    # Add timestamp if not already present
                     if not decrypted_content.startswith("[20"):
-                        timestamp = db_content.created_at.strftime(
+                        timestamp = c.created_at.strftime(
                             "[%Y-%m-%d %H:%M:%S]")
                         decrypted_content = f"{timestamp} {decrypted_content}"
                     relevant_contents.append(decrypted_content)
 
-        except Exception as e:
-            logger.error(f"Error querying vector store for network {
-                         query_in.nid}: {str(e)}")
-            logger.info("Falling back to traditional content retrieval")
+            if not relevant_contents:
+                logger.warning(
+                    f"No relevant content found for query in network {query_in.nid}")
+                return {
+                    "answer": "I couldn't find any relevant information to answer your question.",
+                    "message": "No relevant content found",
+                    "date": formatted_date
+                }
 
-            # Fallback to traditional content retrieval
-            contents = content.get_by_network(
-                db, network_id=query_in.nid, user_id=current_user["uid"])
-            for c in contents:
-                decrypted_content = c.get_decrypted_content(
-                    current_user["uid"])
-                if not decrypted_content.startswith("[20"):
-                    timestamp = c.created_at.strftime("[%Y-%m-%d %H:%M:%S]")
-                    decrypted_content = f"{timestamp} {decrypted_content}"
-                relevant_contents.append(decrypted_content)
-
-        if not relevant_contents:
-            logger.warning(
-                f"No relevant content found for query in network {query_in.nid}")
-            return {
-                "answer": "I couldn't find any relevant information to answer your question.",
-                "message": "No relevant content found",
-                "date": formatted_date
-            }
-
-        # Process query using LLM with relevant content
+        # Process query using LLM with relevant content (or none if no network selected)
         try:
+            # If no content is available, pass a special empty context message
+            if not relevant_contents:
+                relevant_contents = [
+                    "NO_NETWORK_SELECTED - Use general knowledge to answer this question."]
+                name = "No One Selected"  # Clear indication that no network/person is selected
+            else:
+                name = query_in.name if query_in.name and query_in.name.strip() else "Network"
+
             answer = answer_question(
-                name=query_in.name,
+                name=name,  # Use context-appropriate name
                 question=query_in.query,
                 messages=query_in.messages,
                 content_array=relevant_contents

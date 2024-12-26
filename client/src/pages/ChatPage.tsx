@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   TextField,
@@ -35,6 +35,13 @@ function ChatPage({
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
+  const messageListRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const determineActionType = async (
     text: string
@@ -141,7 +148,7 @@ function ChatPage({
       className="chat-paper"
       sx={{ bgcolor: "background.default" }}
     >
-      <List className="message-list">
+      <List className="message-list" ref={messageListRef}>
         {messages.map((message, index) => (
           <ListItem
             key={index}
