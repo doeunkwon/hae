@@ -83,7 +83,7 @@ async def process_query(
             relevant_docs = vector_store.query_documents(
                 query_text=query_in.query,
                 network_id=query_in.nid,
-                n_results=5,  # Get more potential matches
+                n_results=3,  # Get more potential matches
                 min_relevance_score=0.3  # Only include somewhat relevant matches
             )
             print(f"Found {len(relevant_docs)} relevant documents")

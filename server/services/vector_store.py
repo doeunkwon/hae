@@ -5,13 +5,20 @@ from typing import List, Optional
 import logging
 from datetime import datetime
 from uuid import UUID
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain.schema import Document
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 
 class VectorStore:
     def __init__(self, persist_directory: str = os.getenv("CHROMA_DB_PATH")):
-        """Initialize ChromaDB with persistence"""
+        """Initialize ChromaDB with persistence using LangChain"""
         try:
             self.persist_directory = persist_directory
             logger.info(f"Initializing ChromaDB with persistence directory: {
@@ -22,28 +29,26 @@ class VectorStore:
                 logger.info(f"Created persistence directory: {
                             persist_directory}")
 
-            self.client = chromadb.PersistentClient(
-                path=persist_directory,
-                settings=Settings(
-                    allow_reset=True,
-                    anonymized_telemetry=False
-                )
-            )
-            logger.info("ChromaDB client initialized successfully")
+            # Initialize Google Gemini embeddings with API key from environment
+            gemini_api_key = os.getenv("GEMINI_API_KEY")
+            if not gemini_api_key:
+                raise ValueError(
+                    "GEMINI_API_KEY environment variable is not set")
 
-            # List all collections to verify connection
-            collections = self.client.list_collections()
-            logger.info(f"Existing collections: {
-                        [col.name for col in collections]}")
-
-            # Create or get the collection for storing network content
-            self.collection = self.client.get_or_create_collection(
-                name="network_content",
-                metadata={"hnsw:space": "cosine"}
+            self.embedding_function = GoogleGenerativeAIEmbeddings(
+                model="models/embedding-001",  # Gemini's text embedding model
+                google_api_key=gemini_api_key,
             )
-            doc_count = self.collection.count()
-            logger.info(f"ChromaDB collection 'network_content' initialized with {
-                        doc_count} documents")
+
+            # Initialize Chroma through LangChain
+            self.vectorstore = Chroma(
+                persist_directory=persist_directory,
+                embedding_function=self.embedding_function,
+                collection_name="network_content"
+            )
+
+            logger.info(
+                "ChromaDB client initialized successfully with LangChain and Gemini embeddings")
 
         except Exception as e:
             logger.error(f"Failed to initialize ChromaDB: {str(e)}")
@@ -57,7 +62,7 @@ class VectorStore:
         metadata: Optional[List[dict]] = None
     ):
         """
-        Add or update documents in the vector store
+        Add or update documents in the vector store using LangChain
 
         Args:
             documents: List of text content to add
@@ -66,7 +71,6 @@ class VectorStore:
             metadata: Optional list of metadata dicts for each document
         """
         if document_ids is None:
-            # Generate IDs using timestamp and index
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             document_ids = [f"{str(network_id)}_{timestamp}_{
                 i}" for i in range(len(documents))]
@@ -74,56 +78,26 @@ class VectorStore:
         if metadata is None:
             metadata = [{"network_id": str(network_id)} for _ in documents]
         else:
-            # Ensure network_id is in metadata as string
             for meta in metadata:
                 meta["network_id"] = str(network_id)
                 if "content_id" in meta:
                     meta["content_id"] = str(meta["content_id"])
 
         try:
-            # Log the state before addition
-            pre_count = self.collection.count()
-            logger.info(f"Current document count before addition: {pre_count}")
+            # Create LangChain documents
+            langchain_docs = [
+                Document(
+                    page_content=doc,
+                    metadata={"id": doc_id, **meta}
+                )
+                for doc, doc_id, meta in zip(documents, document_ids, metadata)
+            ]
+
+            # Add documents using LangChain
+            self.vectorstore.add_documents(langchain_docs)
+
             logger.info(
-                f"Adding {len(documents)} documents to ChromaDB for network {network_id}")
-            logger.info(f"Document IDs to be added: {document_ids}")
-            logger.info(f"First document content (truncated): {
-                        documents[0][:100] if documents else 'No documents'}")
-            logger.info(f"Metadata for documents: {metadata}")
-
-            # Add documents
-            self.collection.add(
-                documents=documents,
-                ids=document_ids,
-                metadatas=metadata
-            )
-
-            # Verify addition
-            post_count = self.collection.count()
-            # Get count of documents for this network using get() with where filter
-            network_docs = self.collection.get(
-                where={"network_id": str(network_id)}
-            )
-            network_doc_count = len(network_docs['ids']) if network_docs else 0
-
-            logger.info(f"Document count after addition: {
-                        post_count} (change of {post_count - pre_count})")
-            logger.info(f"Network {network_id} now has {
-                        network_doc_count} documents in ChromaDB")
-
-            # Verify the documents were actually added by trying to retrieve them
-            for doc_id in document_ids:
-                try:
-                    result = self.collection.get(ids=[doc_id])
-                    if result and result['ids']:
-                        logger.info(f"Successfully verified document {
-                                    doc_id} was added")
-                    else:
-                        logger.error(
-                            f"Document {doc_id} was not found after addition")
-                except Exception as e:
-                    logger.error(f"Error verifying document {
-                                 doc_id}: {str(e)}")
+                f"Added {len(documents)} documents to ChromaDB for network {network_id}")
 
         except Exception as e:
             logger.error(f"Error adding documents to vector store: {str(e)}")
@@ -134,11 +108,11 @@ class VectorStore:
         self,
         query_text: str,
         network_id: UUID,
-        n_results: int = 5,
+        n_results: int = 3,
         min_relevance_score: float = 0.0
     ) -> List[dict]:
         """
-        Query the vector store for relevant documents
+        Query the vector store for relevant documents using LangChain
 
         Args:
             query_text: The query text to search for
@@ -153,42 +127,29 @@ class VectorStore:
             logger.info(f"Querying ChromaDB for network {
                         network_id} with query: '{query_text}'")
 
-            # Query more results than needed to filter by relevance
-            results = self.collection.query(
-                query_texts=[query_text],
-                n_results=max(n_results * 2, 10),  # Get more results to filter
-                where={"network_id": str(network_id)}
+            # Use LangChain's similarity search with score
+            results = self.vectorstore.similarity_search_with_score(
+                query_text,
+                k=n_results,
+                filter={"network_id": str(network_id)}
             )
 
-            # Format results
             documents = []
-            if results['documents']:
-                for doc, metadata, distance in zip(
-                    results['documents'][0],
-                    results['metadatas'][0],
-                    results['distances'][0]
-                ):
-                    relevance_score = 1 - distance  # Convert distance to similarity score
-                    if relevance_score >= min_relevance_score:
-                        documents.append({
-                            "content": doc,
-                            "metadata": metadata,
-                            "relevance_score": relevance_score
-                        })
+            for doc, distance in results:
+                # Convert distance to similarity score
+                relevance_score = 1 / (1 + distance)
+                if relevance_score >= min_relevance_score:
+                    documents.append({
+                        "content": doc.page_content,
+                        "metadata": doc.metadata,
+                        "relevance_score": relevance_score
+                    })
 
-                # Sort by relevance score and take top n_results
-                documents.sort(
-                    key=lambda x: x['relevance_score'], reverse=True)
-                documents = documents[:n_results]
+            # Sort by relevance score
+            documents.sort(key=lambda x: x['relevance_score'], reverse=True)
 
-                logger.info(
-                    f"Found {len(documents)} relevant documents for network {network_id}")
-                logger.debug(f"Document scores: {
-                             [doc['relevance_score'] for doc in documents]}")
-            else:
-                logger.info(
-                    f"No relevant documents found for network {network_id}")
-
+            logger.info(
+                f"Found {len(documents)} relevant documents for network {network_id}")
             return documents
 
         except Exception as e:
@@ -198,23 +159,11 @@ class VectorStore:
     def delete_network_documents(self, network_id: UUID):
         """Delete all documents for a specific network"""
         try:
-            # Get count before deletion using get()
-            pre_docs = self.collection.get(
-                where={"network_id": str(network_id)})
-            pre_count = len(pre_docs['ids']) if pre_docs else 0
-            logger.info(f"Attempting to delete {
-                        pre_count} documents for network {network_id}")
-
-            self.collection.delete(
-                where={"network_id": str(network_id)}
+            self.vectorstore.delete(
+                filter={"network_id": str(network_id)}
             )
-
-            # Verify deletion using get()
-            post_docs = self.collection.get(
-                where={"network_id": str(network_id)})
-            post_count = len(post_docs['ids']) if post_docs else 0
-            logger.info(f"Successfully deleted documents. Network {
-                        network_id} went from {pre_count} to {post_count} documents")
+            logger.info(
+                f"Successfully deleted documents for network {network_id}")
 
         except Exception as e:
             logger.error(
