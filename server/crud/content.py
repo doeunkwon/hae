@@ -13,11 +13,13 @@ class CRUDContent(CRUDBase[Content, ContentCreate, ContentCreate]):
         ).all()
         return contents
 
-    def create_with_user(self, db: Session, *, obj_in: ContentCreate, user_id: str) -> Content:
+    def create_with_user(self, db: Session, *, obj_in: ContentCreate, user_id: str, created_at=None) -> Content:
         db_obj = Content(
             network_id=obj_in.network_id,
             user_id=user_id
         )
+        if created_at:
+            db_obj.created_at = created_at
         db_obj.set_encrypted_content(obj_in.content, user_id)
         db.add(db_obj)
         db.commit()

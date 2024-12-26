@@ -11,8 +11,10 @@ class CRUDNetwork(CRUDBase[Network, NetworkCreate, NetworkUpdate]):
             Network.user_id == user_id).all()
         return networks
 
-    def create_with_user(self, db: Session, *, obj_in: NetworkCreate, user_id: str) -> Network:
+    def create_with_user(self, db: Session, *, obj_in: NetworkCreate, user_id: str, created_at=None) -> Network:
         db_obj = Network(user_id=user_id)
+        if created_at:
+            db_obj.created_at = created_at
         db_obj.set_encrypted_name(obj_in.name, user_id)
         db.add(db_obj)
         db.commit()

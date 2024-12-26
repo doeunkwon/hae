@@ -1,5 +1,5 @@
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
@@ -177,13 +177,23 @@ async def save_content(
     *,
     db: Session = Depends(get_db),
     save_in: SaveRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    x_timezone: str = Header(default="UTC", alias="X-Timezone")
 ) -> Any:
     """
     Save content to a network.
     """
     try:
+        # Parse the timezone from header
+        try:
+            tz = pytz.timezone(x_timezone)
+        except pytz.exceptions.UnknownTimeZoneError as e:
+            logger.warning(f"Invalid timezone {
+                           x_timezone}, defaulting to UTC. Error: {str(e)}")
+            tz = pytz.UTC
+
         vector_store = get_vector_store()
+        now = datetime.now(tz)  # Get current time in user's timezone
 
         if not save_in.nid:
             # Create new network flow - extract both name and content
@@ -194,7 +204,7 @@ async def save_content(
                 # Network name will be encrypted in create_with_user
                 network_create = NetworkCreate(name=extracted_info.name)
                 db_network = network.create_with_user(
-                    db, obj_in=network_create, user_id=current_user["uid"])
+                    db, obj_in=network_create, user_id=current_user["uid"], created_at=now)
                 logger.info(f"Created new network {
                             db_network.nid} for user {current_user['uid']}")
 
@@ -202,7 +212,7 @@ async def save_content(
                 content_create = ContentCreate(
                     content=extracted_info.content, network_id=db_network.nid)
                 db_content = content.create_with_user(
-                    db, obj_in=content_create, user_id=current_user["uid"])
+                    db, obj_in=content_create, user_id=current_user["uid"], created_at=now)
 
                 # Index the content in vector store
                 try:
@@ -244,7 +254,7 @@ async def save_content(
                 content_create = ContentCreate(
                     content=summarized_content, network_id=save_in.nid)
                 db_content = content.create_with_user(
-                    db, obj_in=content_create, user_id=current_user["uid"])
+                    db, obj_in=content_create, user_id=current_user["uid"], created_at=now)
 
                 # Index the content in vector store
                 try:
