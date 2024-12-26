@@ -6,6 +6,7 @@ from crud import network, content
 from schemas.network import Network, NetworkUpdate
 from schemas.content import Content, ContentCreate
 from core.firebase import get_current_user
+from core.vector_store import get_vector_store
 from database.db import get_db
 import logging
 
@@ -52,7 +53,7 @@ async def delete_network(
     current_user: dict = Depends(get_current_user)
 ) -> Any:
     """
-    Delete network.
+    Delete network and all its contents from both SQL and vector store.
     """
     try:
         db_network = network.get_user_network(
@@ -60,8 +61,20 @@ async def delete_network(
         if not db_network:
             raise HTTPException(status_code=404, detail="Network not found")
 
+        # Delete from vector store first
+        try:
+            vector_store = get_vector_store()
+            vector_store.delete_network_documents(network_id=nid)
+            logger.info(f"Deleted all documents for network {
+                        nid} from vector store")
+        except Exception as e:
+            logger.error(f"Failed to delete network {
+                         nid} documents from vector store: {str(e)}")
+            # Continue with SQL deletion even if vector store deletion fails
+
+        # Then delete from SQL database
         network.remove(db, id=nid)
-        return {"message": "Network deleted successfully"}
+        return {"message": "Network and all its contents deleted successfully"}
     except Exception as e:
         logger.error(f"Failed to delete network {nid} for user {
                      current_user['uid']}: {str(e)}")
@@ -172,7 +185,7 @@ async def delete_content(
     current_user: dict = Depends(get_current_user)
 ) -> Any:
     """
-    Delete content from network.
+    Delete content from both SQL database and vector store.
     """
     try:
         db_network = network.get_user_network(
@@ -180,6 +193,21 @@ async def delete_content(
         if not db_network:
             raise HTTPException(status_code=404, detail="Network not found")
 
+        # Delete from vector store first
+        try:
+            vector_store = get_vector_store()
+            # Generate the document ID pattern that was used when adding the content
+            # We'll delete any document that has this content_id in its metadata
+            vector_store.collection.delete(
+                where={"content_id": cid}
+            )
+            logger.info(f"Deleted content {cid} from vector store")
+        except Exception as e:
+            logger.error(f"Failed to delete content {
+                         cid} from vector store: {str(e)}")
+            # Continue with SQL deletion even if vector store deletion fails
+
+        # Then delete from SQL database
         content.remove(db, id=cid)
         return {"message": "Content deleted successfully"}
     except Exception as e:
