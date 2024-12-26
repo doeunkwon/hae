@@ -4,6 +4,7 @@ import os
 from typing import List, Optional
 import logging
 from datetime import datetime
+from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class VectorStore:
     def add_or_update_documents(
         self,
         documents: List[str],
-        network_id: int,
+        network_id: UUID,
         document_ids: Optional[List[str]] = None,
         metadata: Optional[List[dict]] = None
     ):
@@ -60,22 +61,24 @@ class VectorStore:
 
         Args:
             documents: List of text content to add
-            network_id: Network ID these documents belong to
+            network_id: Network ID these documents belong to (UUID)
             document_ids: Optional list of unique IDs for the documents
             metadata: Optional list of metadata dicts for each document
         """
         if document_ids is None:
             # Generate IDs using timestamp and index
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            document_ids = [f"{network_id}_{timestamp}_{
+            document_ids = [f"{str(network_id)}_{timestamp}_{
                 i}" for i in range(len(documents))]
 
         if metadata is None:
-            metadata = [{"network_id": network_id} for _ in documents]
+            metadata = [{"network_id": str(network_id)} for _ in documents]
         else:
-            # Ensure network_id is in metadata
+            # Ensure network_id is in metadata as string
             for meta in metadata:
-                meta["network_id"] = network_id
+                meta["network_id"] = str(network_id)
+                if "content_id" in meta:
+                    meta["content_id"] = str(meta["content_id"])
 
         try:
             # Log the state before addition
@@ -88,11 +91,6 @@ class VectorStore:
                         documents[0][:100] if documents else 'No documents'}")
             logger.info(f"Metadata for documents: {metadata}")
 
-            # Verify the collection exists
-            collections = self.client.list_collections()
-            logger.info(f"Available collections before addition: {
-                        [col.name for col in collections]}")
-
             # Add documents
             self.collection.add(
                 documents=documents,
@@ -104,7 +102,7 @@ class VectorStore:
             post_count = self.collection.count()
             # Get count of documents for this network using get() with where filter
             network_docs = self.collection.get(
-                where={"network_id": network_id}
+                where={"network_id": str(network_id)}
             )
             network_doc_count = len(network_docs['ids']) if network_docs else 0
 
@@ -135,28 +133,31 @@ class VectorStore:
     def query_documents(
         self,
         query_text: str,
-        network_id: int,
-        n_results: int = 5
+        network_id: UUID,
+        n_results: int = 5,
+        min_relevance_score: float = 0.0
     ) -> List[dict]:
         """
         Query the vector store for relevant documents
 
         Args:
             query_text: The query text to search for
-            network_id: Network ID to filter results
+            network_id: Network ID to filter results (UUID)
             n_results: Number of results to return
+            min_relevance_score: Minimum relevance score (0 to 1) for a document to be included
 
         Returns:
-            List of documents with their metadata and relevance scores
+            List of documents with their metadata and relevance scores, sorted by relevance
         """
         try:
             logger.info(f"Querying ChromaDB for network {
                         network_id} with query: '{query_text}'")
 
+            # Query more results than needed to filter by relevance
             results = self.collection.query(
                 query_texts=[query_text],
-                n_results=n_results,
-                where={"network_id": network_id}
+                n_results=max(n_results * 2, 10),  # Get more results to filter
+                where={"network_id": str(network_id)}
             )
 
             # Format results
@@ -167,11 +168,18 @@ class VectorStore:
                     results['metadatas'][0],
                     results['distances'][0]
                 ):
-                    documents.append({
-                        "content": doc,
-                        "metadata": metadata,
-                        "relevance_score": 1 - distance  # Convert distance to similarity score
-                    })
+                    relevance_score = 1 - distance  # Convert distance to similarity score
+                    if relevance_score >= min_relevance_score:
+                        documents.append({
+                            "content": doc,
+                            "metadata": metadata,
+                            "relevance_score": relevance_score
+                        })
+
+                # Sort by relevance score and take top n_results
+                documents.sort(
+                    key=lambda x: x['relevance_score'], reverse=True)
+                documents = documents[:n_results]
 
                 logger.info(
                     f"Found {len(documents)} relevant documents for network {network_id}")
@@ -187,21 +195,23 @@ class VectorStore:
             logger.error(f"Error querying vector store: {str(e)}")
             raise
 
-    def delete_network_documents(self, network_id: int):
+    def delete_network_documents(self, network_id: UUID):
         """Delete all documents for a specific network"""
         try:
             # Get count before deletion using get()
-            pre_docs = self.collection.get(where={"network_id": network_id})
+            pre_docs = self.collection.get(
+                where={"network_id": str(network_id)})
             pre_count = len(pre_docs['ids']) if pre_docs else 0
             logger.info(f"Attempting to delete {
                         pre_count} documents for network {network_id}")
 
             self.collection.delete(
-                where={"network_id": network_id}
+                where={"network_id": str(network_id)}
             )
 
             # Verify deletion using get()
-            post_docs = self.collection.get(where={"network_id": network_id})
+            post_docs = self.collection.get(
+                where={"network_id": str(network_id)})
             post_count = len(post_docs['ids']) if post_docs else 0
             logger.info(f"Successfully deleted documents. Network {
                         network_id} went from {pre_count} to {post_count} documents")

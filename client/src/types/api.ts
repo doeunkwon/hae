@@ -16,12 +16,12 @@ export interface Message {
 }
 
 export interface Network {
-    nid: number;
+    nid: string;
     name: string;
 }
 
 export interface Content {
-    cid: number;
+    cid: string;
     content: string;
     created_at: string;
 }

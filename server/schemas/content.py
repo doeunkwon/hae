@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 
 class ContentBase(BaseModel):
@@ -8,12 +9,12 @@ class ContentBase(BaseModel):
 
 
 class ContentCreate(ContentBase):
-    network_id: int
+    network_id: UUID
 
 
 class Content(ContentBase):
-    cid: int
-    network_id: int
+    cid: UUID
+    network_id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
 

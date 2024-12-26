@@ -1,14 +1,16 @@
-from sqlalchemy import Column, String, Integer, ForeignKey
+from sqlalchemy import Column, String, ForeignKey
+import uuid
 from models.base import BaseModel
 from utils.encryption import encrypt, decrypt
+from models.network import UUID
 
 
 class Content(BaseModel):
     __tablename__ = "contents"
 
-    cid = Column(Integer, primary_key=True, index=True)
+    cid = Column(UUID, primary_key=True, default=uuid.uuid4, index=True)
     content = Column(String, nullable=False)
-    network_id = Column(Integer, ForeignKey(
+    network_id = Column(UUID, ForeignKey(
         "networks.nid", ondelete="CASCADE"), nullable=False)
     user_id = Column(String, nullable=False)  # Firebase UID
 

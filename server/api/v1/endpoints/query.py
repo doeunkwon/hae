@@ -1,9 +1,10 @@
-from typing import Any, List
+from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
 import pytz
+from uuid import UUID
 from crud import network, content
 from schemas.network import NetworkCreate
 from schemas.content import ContentCreate
@@ -21,7 +22,7 @@ router = APIRouter()
 class QueryRequest(BaseModel):
     query: str
     name: str
-    nid: int
+    nid: UUID
     messages: List[Message]
 
 
@@ -32,7 +33,7 @@ class QueryResponse(BaseModel):
 
 
 class SaveRequest(BaseModel):
-    nid: int
+    nid: Optional[UUID] = None
     text: str
 
 
@@ -82,12 +83,21 @@ async def process_query(
             relevant_docs = vector_store.query_documents(
                 query_text=query_in.query,
                 network_id=query_in.nid,
-                n_results=5  # Adjust this number based on your needs
+                n_results=5,  # Get more potential matches
+                min_relevance_score=0.3  # Only include somewhat relevant matches
             )
             print(f"Found {len(relevant_docs)} relevant documents")
+            print("\nRelevant documents from vector store (sorted by relevance):")
+            for i, doc in enumerate(relevant_docs, 1):
+                print(f"\nDocument {i}:")
+                print(f"Content: {doc['content']}")
+                print(f"Relevance Score: {doc['relevance_score']:.4f}")
+                print(f"Metadata: {doc['metadata']}")
+
             # Get content IDs from the results
             content_ids = [doc['metadata']['content_id']
                            for doc in relevant_docs]
+            print(f"\nFetching contents with IDs: {content_ids}")
 
             # Fetch full content from database for these IDs
             relevant_contents = []
@@ -102,6 +112,8 @@ async def process_query(
                             "[%Y-%m-%d %H:%M:%S]")
                         decrypted_content = f"{timestamp} {decrypted_content}"
                     relevant_contents.append(decrypted_content)
+                    print(f"\nFetched and decrypted content {content_id}:")
+                    print(decrypted_content)
 
             if not relevant_contents:
                 logger.warning(

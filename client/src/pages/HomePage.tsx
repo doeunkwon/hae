@@ -36,7 +36,7 @@ function HomePage() {
   >([]);
   const [contentAnchorEl, setContentAnchorEl] =
     useState<HTMLButtonElement | null>(null);
-  const [viewedNetworkId, setViewedNetworkId] = useState<number | null>(null);
+  const [viewedNetworkId, setViewedNetworkId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionType, setActionType] = useState<"send" | "save">("save");
 
@@ -70,7 +70,7 @@ function HomePage() {
     setAnchorEl(null);
   };
 
-  const handleDeleteNetwork = async (nid: number) => {
+  const handleDeleteNetwork = async (nid: string) => {
     try {
       const response = await api.delete<Response>(`/api/v1/networks/${nid}`);
       setNetworks((prevNetworks) =>
@@ -85,7 +85,7 @@ function HomePage() {
     }
   };
 
-  const handleUpdateNetworkName = async (nid: number, newName: string) => {
+  const handleUpdateNetworkName = async (nid: string, newName: string) => {
     try {
       const response = await api.put<Response>(`/api/v1/networks/${nid}/name`, {
         name: newName,
@@ -106,7 +106,7 @@ function HomePage() {
 
   const handleViewContents = async (
     event: React.MouseEvent<HTMLButtonElement>,
-    nid: number
+    nid: string
   ) => {
     event.stopPropagation();
     const buttonElement = event.currentTarget;
@@ -128,7 +128,7 @@ function HomePage() {
     setViewedNetworkId(null);
   };
 
-  const handleDeleteContent = async (nid: number, cid: number) => {
+  const handleDeleteContent = async (nid: string, cid: string) => {
     try {
       const networkId = viewedNetworkId;
       if (!networkId) {
@@ -186,7 +186,7 @@ function HomePage() {
               <InputLabel>Who</InputLabel>
               <Select
                 value={
-                  isLoading || !networks.length ? 0 : currentNetwork?.nid ?? 0
+                  isLoading || !networks.length ? "" : currentNetwork?.nid ?? ""
                 }
                 onChange={(e) =>
                   setCurrentNetwork(
@@ -196,7 +196,7 @@ function HomePage() {
                 label="Who"
                 disabled={isLoading}
               >
-                <MenuItem key={0} value={0}>
+                <MenuItem key="" value="">
                   New Person
                 </MenuItem>
                 {isLoading ? (

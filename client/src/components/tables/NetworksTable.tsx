@@ -7,12 +7,12 @@ import { useState } from "react";
 
 interface NetworksTableProps {
   networks: Network[];
-  onDelete: (nid: number) => void;
+  onDelete: (nid: string) => void;
   onViewContents: (
     event: React.MouseEvent<HTMLButtonElement>,
-    nid: number
+    nid: string
   ) => void;
-  onUpdateName: (nid: number, newName: string) => void;
+  onUpdateName: (nid: string, newName: string) => void;
 }
 
 function NetworksTable({
@@ -21,7 +21,7 @@ function NetworksTable({
   onViewContents,
   onUpdateName,
 }: NetworksTableProps) {
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
 
   const columns = [

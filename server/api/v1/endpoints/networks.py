@@ -2,6 +2,7 @@ from typing import List, Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from uuid import UUID
 from crud import network, content
 from schemas.network import Network, NetworkUpdate
 from schemas.content import Content, ContentCreate
@@ -49,11 +50,12 @@ async def read_networks(
 async def delete_network(
     *,
     db: Session = Depends(get_db),
-    nid: int,
+    nid: UUID,
     current_user: dict = Depends(get_current_user)
 ) -> Any:
     """
     Delete network and all its contents from both SQL and vector store.
+    Contents are automatically deleted from SQL due to CASCADE delete.
     """
     try:
         db_network = network.get_user_network(
@@ -64,7 +66,8 @@ async def delete_network(
         # Delete from vector store first
         try:
             vector_store = get_vector_store()
-            vector_store.delete_network_documents(network_id=nid)
+            # Delete all documents for this network
+            vector_store.delete_network_documents(network_id=str(nid))
             logger.info(f"Deleted all documents for network {
                         nid} from vector store")
         except Exception as e:
@@ -72,8 +75,11 @@ async def delete_network(
                          nid} documents from vector store: {str(e)}")
             # Continue with SQL deletion even if vector store deletion fails
 
-        # Then delete from SQL database
+        # Delete network from SQL database
+        # This will automatically delete all associated contents due to CASCADE delete
         network.remove(db, id=nid)
+        logger.info(f"Deleted network {
+                    nid} and all its contents (CASCADE) from SQL database")
         return {"message": "Network and all its contents deleted successfully"}
     except Exception as e:
         logger.error(f"Failed to delete network {nid} for user {
@@ -88,7 +94,7 @@ async def delete_network(
 async def update_network_name(
     *,
     db: Session = Depends(get_db),
-    nid: int,
+    nid: UUID,
     network_in: NetworkNameUpdate,
     current_user: dict = Depends(get_current_user)
 ) -> Any:
@@ -117,7 +123,7 @@ async def update_network_name(
 async def read_network_contents(
     *,
     db: Session = Depends(get_db),
-    nid: int,
+    nid: UUID,
     current_user: dict = Depends(get_current_user)
 ) -> Any:
     """
@@ -148,7 +154,7 @@ async def read_network_contents(
 async def create_content(
     *,
     db: Session = Depends(get_db),
-    nid: int,
+    nid: UUID,
     content_in: ContentCreate,
     current_user: dict = Depends(get_current_user)
 ) -> Any:
@@ -180,8 +186,8 @@ async def create_content(
 async def delete_content(
     *,
     db: Session = Depends(get_db),
-    nid: int,
-    cid: int,
+    nid: UUID,
+    cid: UUID,
     current_user: dict = Depends(get_current_user)
 ) -> Any:
     """
@@ -196,10 +202,9 @@ async def delete_content(
         # Delete from vector store first
         try:
             vector_store = get_vector_store()
-            # Generate the document ID pattern that was used when adding the content
-            # We'll delete any document that has this content_id in its metadata
+            # Delete any document that has this content_id in its metadata
             vector_store.collection.delete(
-                where={"content_id": cid}
+                where={"content_id": str(cid)}
             )
             logger.info(f"Deleted content {cid} from vector store")
         except Exception as e:

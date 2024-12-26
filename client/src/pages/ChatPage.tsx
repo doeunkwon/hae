@@ -49,7 +49,7 @@ function ChatPage({
       const response = await api.post<QueryResponse>("/api/v1/query", {
         query: input,
         name: currentNetwork?.name || "",
-        nid: currentNetwork?.nid || 0,
+        nid: currentNetwork?.nid || null,
         messages: messages,
       });
 
@@ -67,7 +67,7 @@ function ChatPage({
 
     try {
       const response = await api.post<SaveResponse>("/api/v1/save", {
-        nid: currentNetwork?.nid || 0,
+        nid: currentNetwork?.nid || null,
         text: input,
       });
       setInput("");

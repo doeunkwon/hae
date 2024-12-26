@@ -3,8 +3,8 @@ import GenericTable from "./GenericTable";
 
 interface ContentsTableProps {
   contents: Content[];
-  onDelete: (nid: number, cid: number) => void;
-  networkId: number | null;
+  onDelete: (nid: string, cid: string) => void;
+  networkId: string | null;
 }
 
 function ContentsTable({
@@ -32,7 +32,7 @@ function ContentsTable({
   ];
 
   const handleDelete = (content: Content) => {
-    onDelete(networkId || 0, content.cid);
+    onDelete(networkId || "", content.cid);
   };
 
   return (

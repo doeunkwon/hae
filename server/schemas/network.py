@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 
 class NetworkBase(BaseModel):
@@ -16,7 +17,7 @@ class NetworkUpdate(NetworkBase):
 
 
 class Network(NetworkBase):
-    nid: int
+    nid: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
 
