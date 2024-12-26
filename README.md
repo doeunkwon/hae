@@ -2,6 +2,10 @@
 
 Welcome to Hae, the personal CRM app that makes managing your network as easy as chatting! Forget about spreadsheets and complex interfaces. With Hae, you simply chat with an AI assistant powered by Gemini 1.5 Flash to save and retrieve information about anyone in your network.
 
+## Demo
+
+https://github.com/user-attachments/assets/d6ebed48-2862-444c-8116-99fe02775b01
+
 ## Tech Stack
 
 - **Frontend**: React
