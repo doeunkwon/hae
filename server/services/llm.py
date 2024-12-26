@@ -122,11 +122,21 @@ MEMORY_CONTEXT_TEMPLATE = """
 
 def answer_question(name: str, question: str, messages: List[Message], content_array: List[str]) -> str:
     try:
+        # Validate inputs
+        if not question or not question.strip():
+            raise ValueError("Question cannot be empty")
+        if not content_array:
+            raise ValueError("Content array cannot be empty")
+        if not name:
+            raise ValueError("Name cannot be empty")
+
         model = genai.GenerativeModel('gemini-1.5-flash')
         model.temperature = 1.0
 
         # Combine the content array into a single string
         content = "\n".join(content_array)
+        if not content.strip():
+            raise ValueError("Content cannot be empty after joining")
 
         # Create chat instance
         chat = model.start_chat()
@@ -140,8 +150,8 @@ def answer_question(name: str, question: str, messages: List[Message], content_a
             response = chat.send_message(STATIC_INSTRUCTIONS)
             print(f"ASSISTANT: {response.text}")
             if not response.text or "UNDERSTOOD" not in response.text.upper():
-                print(f"ERROR: Model did not acknowledge instructions properly: {
-                      response.text}")
+                logger.error(f"Model did not acknowledge instructions properly: {
+                             response.text}")
                 raise ValueError("Model failed to acknowledge instructions")
 
         # Always send the current context
@@ -151,28 +161,35 @@ def answer_question(name: str, question: str, messages: List[Message], content_a
             content=content
         )
         print(f"\nSYSTEM: {context}")
-        chat.send_message(context)
+        context_response = chat.send_message(context)
+        if not context_response.text:
+            logger.error("Empty response when sending context")
+            raise ValueError("Failed to process context")
 
         # Send previous chat history
         if messages:
             print("\n=== Previous conversation history ===")
             for message in messages:
+                if not message.content.strip():
+                    continue  # Skip empty messages
                 print(f"{message.role.upper()}: {message.content}")
                 chat.send_message(message.content)
 
         # Finally send the current question and get response
         print(f"\nUSER: {question}")
         response = chat.send_message(question)
-        if response.text:
-            print(f"ASSISTANT: {response.text}")
-            return response.text
+        if not response or not response.text or not response.text.strip():
+            logger.error(
+                f"Empty response from Gemini for question about {name}")
+            raise ValueError("No valid response generated")
 
-        print(f"\nERROR: Empty response from Gemini for question about {name}")
-        raise ValueError("No valid response generated")
+        print(f"ASSISTANT: {response.text}")
+        return response.text.strip()
+
     except Exception as e:
         logger.error(f"Error answering question about {name}: {str(e)}\nQuestion: {
                      question}\nContent array length: {len(content_array)}")
-        raise Exception(f"Failed to generate content: {str(e)}")
+        raise Exception(f"Failed to process query: {str(e)}")
 
 
 def summarize_content(input_text: str) -> str:
@@ -210,3 +227,63 @@ def summarize_content(input_text: str) -> str:
         logger.error(f"Error summarizing content: {
                      str(e)}\nInput text: {input_text}")
         raise Exception(f"Failed to summarize content: {str(e)}")
+
+
+def determine_action_type(input_text: str) -> str:
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        model.temperature = 0
+
+        prompt = f"""
+            You are a personal CRM assistant. Determine if the following text is asking a question about someone (ask) or providing new information to save about someone (save).
+
+            Text: {input_text}
+
+            Rules:
+            - Analyze if the text is asking for information or providing new information
+            - "ask" = the text is asking for information or posing a question
+            - "save" = the text is providing new information or describing an interaction
+            - When in doubt, default to "ask"
+            - Ignore any mentions of "save" or "ask" in the text itself - focus on the intent
+
+            Respond with a JSON object in this EXACT format, nothing else:
+            {{"action": "ask"}} or {{"action": "save"}}
+        """
+
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+
+        # Remove any markdown formatting if present
+        if text.startswith("```") and text.endswith("```"):
+            lines = text.split("\n")
+            if len(lines) > 2:  # Ensure we have content between markers
+                text = "\n".join(lines[1:-1])
+            else:
+                text = text.replace("```", "")
+
+        # Remove "json" language identifier if present
+        text = text.replace("```json", "").replace("```", "").strip()
+
+        try:
+            result = json.loads(text)
+            if "action" in result and result["action"] in ["ask", "save"]:
+                action = result["action"]
+                print(f"LLM classified text as '{
+                    action}': {input_text[:100]}...")
+                return action
+            else:
+                logger.error(f"Invalid action type in response: {text}")
+                print(f"Defaulting to 'ask' for text: {
+                    input_text[:100]}...")
+                return "ask"  # Default to ask if response is invalid
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse response as JSON: {text}")
+            logger.print(f"Defaulting to 'ask' for text: {
+                         input_text[:100]}...")
+            return "ask"  # Default to ask if JSON parsing fails
+
+    except Exception as e:
+        logger.error(f"Error determining action type: {
+                     str(e)}\nInput text: {input_text}")
+        logger.info(f"Defaulting to 'ask' for text: {input_text[:100]}...")
+        return "ask"  # Default to ask on error

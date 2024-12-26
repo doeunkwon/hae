@@ -22,17 +22,36 @@ interface SaveResponse {
   message: string;
 }
 
+interface ActionTypeResponse {
+  action_type: "send" | "save";
+}
+
 function ChatPage({
   currentNetwork,
   onNetworkUpdate,
-  actionType,
 }: {
   currentNetwork: Network | null;
   onNetworkUpdate: () => void;
-  actionType: "send" | "save";
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
+
+  const determineActionType = async (
+    text: string
+  ): Promise<"send" | "save"> => {
+    try {
+      const response = await api.post<ActionTypeResponse>(
+        "/api/v1/determine_action",
+        {
+          text: text,
+        }
+      );
+      return response.data.action_type;
+    } catch (error) {
+      console.error("Error determining action type:", error);
+      return "send"; // Default to send (ask) on error
+    }
+  };
 
   const sendMessage = async (): Promise<void> => {
     if (!input.trim()) return;
@@ -94,11 +113,19 @@ function ChatPage({
   };
 
   const handleSubmit = async (): Promise<void> => {
+    if (!input.trim()) return;
+
+    const actionType = await determineActionType(input);
     if (actionType === "send") {
       await sendMessage();
     } else {
       await saveText();
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInput(newValue);
   };
 
   const handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>): void => {
@@ -142,15 +169,11 @@ function ChatPage({
         <TextField
           fullWidth
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInputChange}
           placeholder={
-            actionType === "send"
-              ? currentNetwork?.name
-                ? `Ask a question about ${currentNetwork?.name}`
-                : "Ask a question"
-              : currentNetwork?.name
-              ? `Save new information about ${currentNetwork?.name}`
-              : "Save new information"
+            currentNetwork?.name
+              ? `Type about ${currentNetwork?.name}...`
+              : "Type about someone..."
           }
           onKeyDown={handleKeyPress}
           multiline={true}
@@ -163,7 +186,7 @@ function ChatPage({
             alignSelf: "stretch",
           }}
         >
-          {actionType === "send" ? "Ask" : "Save"}
+          Send
         </Button>
       </Box>
     </Paper>

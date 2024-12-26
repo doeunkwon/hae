@@ -38,7 +38,6 @@ function HomePage() {
     useState<HTMLButtonElement | null>(null);
   const [viewedNetworkId, setViewedNetworkId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [actionType, setActionType] = useState<"send" | "save">("save");
 
   const fetchNetworks = async () => {
     try {
@@ -55,12 +54,6 @@ function HomePage() {
   useEffect(() => {
     fetchNetworks();
   }, []);
-
-  useEffect(() => {
-    if (!currentNetwork?.nid) {
-      setActionType("save");
-    }
-  }, [currentNetwork]);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -212,19 +205,6 @@ function HomePage() {
                 )}
               </Select>
             </FormControl>
-            <FormControl sx={{ flex: 1 }}>
-              <InputLabel>What</InputLabel>
-              <Select
-                value={actionType}
-                onChange={(e) =>
-                  setActionType(e.target.value as "send" | "save")
-                }
-                label="What"
-              >
-                <MenuItem value="save">Save</MenuItem>
-                {currentNetwork && <MenuItem value="send">Ask</MenuItem>}
-              </Select>
-            </FormControl>
           </Stack>
         </Stack>
 
@@ -295,7 +275,6 @@ function HomePage() {
           <ChatPage
             currentNetwork={currentNetwork}
             onNetworkUpdate={fetchNetworks}
-            actionType={actionType}
           />
         </Box>
       </Container>

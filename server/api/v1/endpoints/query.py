@@ -11,7 +11,7 @@ from schemas.content import ContentCreate
 from core.firebase import get_current_user
 from database.db import get_db
 from core.vector_store import get_vector_store
-from services.llm import extract_information, answer_question, Message, summarize_content
+from services.llm import extract_information, answer_question, Message, summarize_content, determine_action_type
 import logging
 from config import N_RESULTS
 
@@ -36,6 +36,14 @@ class QueryResponse(BaseModel):
 class SaveRequest(BaseModel):
     nid: Optional[UUID] = None
     text: str
+
+
+class ActionTypeRequest(BaseModel):
+    text: str
+
+
+class ActionTypeResponse(BaseModel):
+    action_type: str
 
 
 @router.post("/query", response_model=QueryResponse)
@@ -76,10 +84,12 @@ async def process_query(
                          current_user['uid']}")
             raise HTTPException(status_code=404, detail="Network not found")
 
-        # Use vector store to find relevant content
+        # Get all relevant contents, either from vector store or traditional retrieval
+        relevant_contents = []
 
-        vector_store = get_vector_store()
+        # Try vector store first
         try:
+            vector_store = get_vector_store()
             relevant_docs = vector_store.query_documents(
                 query_text=query_in.query,
                 network_id=query_in.nid,
@@ -91,7 +101,6 @@ async def process_query(
                            for doc in relevant_docs]
 
             # Fetch full content from database for these IDs
-            relevant_contents = []
             for content_id in content_ids:
                 db_content = content.get(db, id=content_id)
                 if db_content and db_content.network_id == query_in.nid:
@@ -104,16 +113,33 @@ async def process_query(
                         decrypted_content = f"{timestamp} {decrypted_content}"
                     relevant_contents.append(decrypted_content)
 
-            if not relevant_contents:
-                logger.warning(
-                    f"No relevant content found for query in network {query_in.nid}")
-                return {
-                    "answer": "I couldn't find any relevant information to answer your question.",
-                    "message": "No relevant content found",
-                    "date": formatted_date
-                }
+        except Exception as e:
+            logger.error(f"Error querying vector store for network {
+                         query_in.nid}: {str(e)}")
+            logger.info("Falling back to traditional content retrieval")
 
-            # Process query using LLM with relevant content
+            # Fallback to traditional content retrieval
+            contents = content.get_by_network(
+                db, network_id=query_in.nid, user_id=current_user["uid"])
+            for c in contents:
+                decrypted_content = c.get_decrypted_content(
+                    current_user["uid"])
+                if not decrypted_content.startswith("[20"):
+                    timestamp = c.created_at.strftime("[%Y-%m-%d %H:%M:%S]")
+                    decrypted_content = f"{timestamp} {decrypted_content}"
+                relevant_contents.append(decrypted_content)
+
+        if not relevant_contents:
+            logger.warning(
+                f"No relevant content found for query in network {query_in.nid}")
+            return {
+                "answer": "I couldn't find any relevant information to answer your question.",
+                "message": "No relevant content found",
+                "date": formatted_date
+            }
+
+        # Process query using LLM with relevant content
+        try:
             answer = answer_question(
                 name=query_in.name,
                 question=query_in.query,
@@ -126,36 +152,10 @@ async def process_query(
                 "message": "Query processed successfully",
                 "date": formatted_date
             }
-
         except Exception as e:
-            logger.error(f"Error querying vector store for network {
-                         query_in.nid}: {str(e)}")
-            # Fallback to traditional content retrieval if vector store fails
-            logger.info("Falling back to traditional content retrieval")
-            contents = content.get_by_network(
-                db, network_id=query_in.nid, user_id=current_user["uid"])
-
-            relevant_contents = []
-            for c in contents:
-                decrypted_content = c.get_decrypted_content(
-                    current_user["uid"])
-                if not decrypted_content.startswith("[20"):
-                    timestamp = c.created_at.strftime("[%Y-%m-%d %H:%M:%S]")
-                    decrypted_content = f"{timestamp} {decrypted_content}"
-                relevant_contents.append(decrypted_content)
-
-            answer = answer_question(
-                name=query_in.name,
-                question=query_in.query,
-                messages=query_in.messages,
-                content_array=relevant_contents
-            )
-
-            return {
-                "answer": answer,
-                "message": "Query processed with fallback method",
-                "date": formatted_date
-            }
+            logger.error(f"Error processing query with LLM: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail="Failed to process query")
 
     except HTTPException:
         raise
@@ -266,5 +266,23 @@ async def save_content(
         raise
     except Exception as e:
         logger.error(f"Error saving content for user {
+                     current_user['uid']}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/determine_action", response_model=ActionTypeResponse)
+async def determine_action(
+    *,
+    request: ActionTypeRequest,
+    current_user: dict = Depends(get_current_user)
+) -> Any:
+    """
+    Determine if the input text is a question (ask) or information to save.
+    """
+    try:
+        action_type = determine_action_type(request.text)
+        return {"action_type": "send" if action_type == "ask" else "save"}
+    except Exception as e:
+        logger.error(f"Error determining action type for user {
                      current_user['uid']}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
