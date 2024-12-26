@@ -70,10 +70,22 @@ async def delete_network(
         # Delete from vector store first
         try:
             vector_store = get_vector_store()
-            # Delete all documents for this network
-            vector_store.delete_network_documents(network_id=str(nid))
-            logger.info(f"Deleted all documents for network {
-                        nid} from vector store")
+
+            # Get all documents for this network
+            results = vector_store.vectorstore.get(
+                where={"network_id": str(nid)}
+            )
+            if results and results['ids']:
+                # Delete all documents for this network by their IDs
+                vector_store.vectorstore._collection.delete(
+                    ids=results['ids']
+                )
+                logger.info(f"Deleted {len(results['ids'])} documents for network {
+                            nid} from vector store")
+            else:
+                logger.info(f"No documents found for network {
+                            nid} in vector store")
+
         except Exception as e:
             logger.error(f"Failed to delete network {
                          nid} documents from vector store: {str(e)}")
@@ -206,11 +218,29 @@ async def delete_content(
         # Delete from vector store first
         try:
             vector_store = get_vector_store()
-            # Delete any document that has this content_id in its metadata
-            vector_store.collection.delete(
-                where={"content_id": str(cid)}
+
+            # Debug: Get and print all documents for this content
+            results = vector_store.vectorstore.get(
+                where={"network_id": str(nid)}
             )
-            logger.info(f"Deleted content {cid} from vector store")
+            if results and results['metadatas']:
+                logger.info(
+                    f"Current documents in vector store for network {nid}:")
+                for metadata in results['metadatas']:
+                    logger.info(f"Document metadata: {metadata}")
+
+                # Find the document ID for this content
+                for i, metadata in enumerate(results['metadatas']):
+                    if metadata.get('content_id') == str(cid):
+                        doc_id = results['ids'][i]
+                        # Delete by ID
+                        vector_store.vectorstore._collection.delete(
+                            ids=[doc_id]
+                        )
+                        logger.info(f"Deleted content {
+                                    cid} (doc_id: {doc_id}) from vector store")
+                        break
+
         except Exception as e:
             logger.error(f"Failed to delete content {
                          cid} from vector store: {str(e)}")
@@ -262,16 +292,33 @@ async def update_content(
         try:
             # Update in vector store
             vector_store = get_vector_store()
-            # Delete old vector
-            vector_store.collection.delete(
-                where={"content_id": str(cid)}
+
+            # Find and delete old vector
+            results = vector_store.vectorstore.get(
+                where={"network_id": str(nid)}
             )
+            if results and results['metadatas']:
+                # Find the document ID for this content
+                for i, metadata in enumerate(results['metadatas']):
+                    if metadata.get('content_id') == str(cid):
+                        doc_id = results['ids'][i]
+                        # Delete by ID
+                        vector_store.vectorstore._collection.delete(
+                            ids=[doc_id]
+                        )
+                        logger.info(f"Deleted old content {
+                                    cid} (doc_id: {doc_id}) from vector store")
+                        break
+
             # Create new vector with updated content
-            vector_store.add_texts(
-                texts=[content_update.content],
-                metadatas=[{
+            vector_store.add_or_update_documents(
+                documents=[content_update.content],
+                network_id=nid,
+                metadata=[{
                     "network_id": str(nid),
-                    "content_id": str(cid)
+                    "content_id": str(cid),
+                    "user_id": current_user["uid"],
+                    "created_at": db_content.created_at.isoformat()
                 }]
             )
             logger.info(f"Updated content {cid} in vector store")
