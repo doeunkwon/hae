@@ -140,6 +140,30 @@ function HomePage() {
     }
   };
 
+  const handleUpdateContent = async (
+    nid: string,
+    cid: string,
+    newContent: string
+  ) => {
+    try {
+      const response = await api.put<Content>(
+        `/api/v1/networks/${nid}/contents/${cid}`,
+        {
+          content: newContent,
+        }
+      );
+      setSelectedNetworkContents((prevContents) =>
+        prevContents.map((content) =>
+          content.cid === cid ? response.data : content
+        )
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update content:", error);
+      throw error;
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -264,6 +288,7 @@ function HomePage() {
             <ContentsTable
               contents={selectedNetworkContents}
               onDelete={handleDeleteContent}
+              onUpdateContent={handleUpdateContent}
               networkId={viewedNetworkId}
             />
           ) : (

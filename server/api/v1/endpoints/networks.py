@@ -23,6 +23,10 @@ class NetworkNameUpdate(BaseModel):
     name: str
 
 
+class ContentUpdate(BaseModel):
+    content: str
+
+
 @router.get("/", response_model=List[Network])
 async def read_networks(
     db: Session = Depends(get_db),
@@ -221,4 +225,69 @@ async def delete_content(
         raise HTTPException(
             status_code=500,
             detail="Failed to delete content"
+        )
+
+
+@router.put("/{nid}/contents/{cid}", response_model=Content)
+async def update_content(
+    *,
+    db: Session = Depends(get_db),
+    nid: UUID,
+    cid: UUID,
+    content_update: ContentUpdate,
+    current_user: dict = Depends(get_current_user)
+) -> Any:
+    """
+    Update content message and its corresponding vector embedding.
+    """
+    try:
+        # Verify network exists and user has access
+        db_network = network.get_user_network(
+            db, user_id=current_user["uid"], nid=nid)
+        if not db_network:
+            raise HTTPException(status_code=404, detail="Network not found")
+
+        # Get the content
+        db_content = content.get(db, id=cid)
+        if not db_content:
+            raise HTTPException(status_code=404, detail="Content not found")
+
+        # Set encrypted content
+        db_content.set_encrypted_content(
+            content_update.content, current_user["uid"])
+        db.add(db_content)
+        db.commit()
+        db.refresh(db_content)
+
+        try:
+            # Update in vector store
+            vector_store = get_vector_store()
+            # Delete old vector
+            vector_store.collection.delete(
+                where={"content_id": str(cid)}
+            )
+            # Create new vector with updated content
+            vector_store.add_texts(
+                texts=[content_update.content],
+                metadatas=[{
+                    "network_id": str(nid),
+                    "content_id": str(cid)
+                }]
+            )
+            logger.info(f"Updated content {cid} in vector store")
+        except Exception as e:
+            logger.error(f"Failed to update content {
+                         cid} in vector store: {str(e)}")
+            # Don't raise exception here as SQL update was successful
+
+        # Decrypt content before sending response
+        db_content.content = db_content.get_decrypted_content(
+            current_user["uid"])
+        return db_content
+    except Exception as e:
+        logger.error(f"Failed to update content {cid} in network {
+                     nid} for user {current_user['uid']}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update content"
         )
