@@ -23,7 +23,7 @@ Welcome to Hae, the personal CRM app that makes managing your network as easy as
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/hae.git
+   git clone https://github.com/doeunkwon/hae.git
    cd hae
    ```
 
