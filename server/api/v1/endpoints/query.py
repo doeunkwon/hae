@@ -9,6 +9,7 @@ from schemas.network import NetworkCreate
 from schemas.content import ContentCreate
 from core.firebase import get_current_user
 from database.db import get_db
+from core.vector_store import get_vector_store
 from services.llm import extract_information, answer_question, Message, summarize_content
 import logging
 
@@ -44,8 +45,9 @@ async def process_query(
     timezone: str = "UTC"
 ) -> Any:
     """
-    Process a query about a network.
+    Process a query about a network using semantic search to find relevant content.
     """
+    print(f"Processing query for network {query_in.nid}")
     try:
         # Parse the timezone
         try:
@@ -72,34 +74,87 @@ async def process_query(
                          current_user['uid']}")
             raise HTTPException(status_code=404, detail="Network not found")
 
-        # Get all contents for this network
-        contents = content.get_by_network(
-            db, network_id=query_in.nid, user_id=current_user["uid"])
+        # Use vector store to find relevant content
+        print(f"Getting vector store for network {query_in.nid}")
+        vector_store = get_vector_store()
+        try:
+            print(f"Querying vector store for network {query_in.nid}")
+            relevant_docs = vector_store.query_documents(
+                query_text=query_in.query,
+                network_id=query_in.nid,
+                n_results=5  # Adjust this number based on your needs
+            )
+            print(f"Found {len(relevant_docs)} relevant documents")
+            # Get content IDs from the results
+            content_ids = [doc['metadata']['content_id']
+                           for doc in relevant_docs]
 
-        # Decrypt contents and add timestamps before processing
-        relevant_contents = []
-        for c in contents:
-            decrypted_content = c.get_decrypted_content(current_user["uid"])
-            # Add timestamp if not already present
-            # Basic check for timestamp format
-            if not decrypted_content.startswith("[20"):
-                timestamp = c.created_at.strftime("[%Y-%m-%d %H:%M:%S]")
-                decrypted_content = f"{timestamp} {decrypted_content}"
-            relevant_contents.append(decrypted_content)
+            # Fetch full content from database for these IDs
+            relevant_contents = []
+            for content_id in content_ids:
+                db_content = content.get(db, id=content_id)
+                if db_content and db_content.network_id == query_in.nid:
+                    decrypted_content = db_content.get_decrypted_content(
+                        current_user["uid"])
+                    # Add timestamp if not already present
+                    if not decrypted_content.startswith("[20"):
+                        timestamp = db_content.created_at.strftime(
+                            "[%Y-%m-%d %H:%M:%S]")
+                        decrypted_content = f"{timestamp} {decrypted_content}"
+                    relevant_contents.append(decrypted_content)
 
-        # Process query using LLM
-        answer = answer_question(
-            name=query_in.name,
-            question=query_in.query,
-            messages=query_in.messages,
-            content_array=relevant_contents
-        )
+            if not relevant_contents:
+                logger.warning(
+                    f"No relevant content found for query in network {query_in.nid}")
+                return {
+                    "answer": "I couldn't find any relevant information to answer your question.",
+                    "message": "No relevant content found",
+                    "date": formatted_date
+                }
 
-        return {
-            "answer": answer,
-            "message": "Query processed successfully",
-            "date": formatted_date
-        }
+            # Process query using LLM with relevant content
+            answer = answer_question(
+                name=query_in.name,
+                question=query_in.query,
+                messages=query_in.messages,
+                content_array=relevant_contents
+            )
+
+            return {
+                "answer": answer,
+                "message": "Query processed successfully",
+                "date": formatted_date
+            }
+
+        except Exception as e:
+            logger.error(f"Error querying vector store for network {
+                         query_in.nid}: {str(e)}")
+            # Fallback to traditional content retrieval if vector store fails
+            logger.info("Falling back to traditional content retrieval")
+            contents = content.get_by_network(
+                db, network_id=query_in.nid, user_id=current_user["uid"])
+
+            relevant_contents = []
+            for c in contents:
+                decrypted_content = c.get_decrypted_content(
+                    current_user["uid"])
+                if not decrypted_content.startswith("[20"):
+                    timestamp = c.created_at.strftime("[%Y-%m-%d %H:%M:%S]")
+                    decrypted_content = f"{timestamp} {decrypted_content}"
+                relevant_contents.append(decrypted_content)
+
+            answer = answer_question(
+                name=query_in.name,
+                question=query_in.query,
+                messages=query_in.messages,
+                content_array=relevant_contents
+            )
+
+            return {
+                "answer": answer,
+                "message": "Query processed with fallback method",
+                "date": formatted_date
+            }
 
     except HTTPException:
         raise
@@ -120,6 +175,8 @@ async def save_content(
     Save content to a network.
     """
     try:
+        vector_store = get_vector_store()
+
         if not save_in.nid:
             # Create new network flow - extract both name and content
             try:
@@ -136,8 +193,25 @@ async def save_content(
                 # Content will be encrypted in create_with_user
                 content_create = ContentCreate(
                     content=extracted_info.content, network_id=db_network.nid)
-                content.create_with_user(
+                db_content = content.create_with_user(
                     db, obj_in=content_create, user_id=current_user["uid"])
+
+                # Index the content in vector store
+                try:
+                    vector_store.add_or_update_documents(
+                        documents=[extracted_info.content],
+                        network_id=db_network.nid,
+                        metadata=[{
+                            "network_id": db_network.nid,
+                            "content_id": db_content.cid,
+                            "user_id": current_user["uid"],
+                            "created_at": db_content.created_at.isoformat()
+                        }]
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to index content in vector store: {str(e)}")
+                    # Don't raise here - we still saved to SQL DB successfully
 
                 return {"message": "Information saved successfully"}
             except Exception as e:
@@ -155,13 +229,31 @@ async def save_content(
                     status_code=404, detail="Network not found")
 
             try:
+                # Summarize the content first
+                summarized_content = summarize_content(save_in.text)
+
                 # Content will be encrypted in create_with_user
                 content_create = ContentCreate(
-                    content=summarize_content(save_in.text), network_id=save_in.nid)
-                content.create_with_user(
+                    content=summarized_content, network_id=save_in.nid)
+                db_content = content.create_with_user(
                     db, obj_in=content_create, user_id=current_user["uid"])
-                logger.info(f"Added new content to network {
-                            save_in.nid} for user {current_user['uid']}")
+
+                # Index the content in vector store
+                try:
+                    vector_store.add_or_update_documents(
+                        documents=[summarized_content],
+                        network_id=save_in.nid,
+                        metadata=[{
+                            "network_id": save_in.nid,
+                            "content_id": db_content.cid,
+                            "user_id": current_user["uid"],
+                            "created_at": db_content.created_at.isoformat()
+                        }]
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to index content in vector store: {str(e)}")
+                    # Don't raise here - we still saved to SQL DB successfully
 
                 return {"message": "Information added successfully"}
             except Exception as e:

@@ -4,10 +4,10 @@ from sqlalchemy.orm import sessionmaker
 import os
 
 # Database configuration
-DB_PATH = os.getenv("DB_PATH", "./database/db.sqlite")
+SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "./database/db.sqlite")
 # Ensure the database directory exists
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+os.makedirs(os.path.dirname(SQLITE_DB_PATH), exist_ok=True)
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{SQLITE_DB_PATH}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}

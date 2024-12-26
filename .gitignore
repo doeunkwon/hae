@@ -16,11 +16,11 @@ client/yarn-error.log*
 
 # Server
 server/.env
-server/database/db.sqlite
 server/volumes/
 server/**/__pycache__/
 server/**/__init__.py
-
+server/database/*
+!server/database/db.py
 
 # IDEs and editors
 .idea/
