@@ -1,12 +1,24 @@
-# 🌞 Hae: Chat-based personal CRM
+# 🌞 Hae: Your Chat-based Personal CRM.
 
-Welcome to Hae, the personal CRM app that makes managing your network as easy as chatting! Forget about spreadsheets and complex interfaces. With Hae, you simply chat with an AI assistant powered by Gemini 1.5 Flash to save and retrieve information about anyone in your network.
+Welcome to **Hae**, the personal CRM app that transforms managing your network into a simple chat experience. Gone are the days of boring spreadsheets and complex interfaces. With Hae, you just chat with an AI assistant powered by **Gemini 1.5 Flash** to save and retrieve information about anyone in your network. 🌟
 
-## Demo
+## 🎥 Demo
 
 https://github.com/user-attachments/assets/d6ebed48-2862-444c-8116-99fe02775b01
 
-## Tech Stack
+## 🔍 RAG Technology with ChromaDB
+
+Hae leverages **Retrieval-Augmented Generation (RAG)** technology using **ChromaDB** to supercharge your network management. Here's how it works:
+
+- **✨ Vector Embeddings**: All your network content is transformed into vectors and stored in a vector store, ensuring lightning-fast and precise information retrieval.
+
+- **🧠 Semantic Search**: Ask anything! Hae uses semantic search to find the top 3 most relevant answers to your natural language queries, based on your saved network content.
+
+- **🔒 End-to-End Encryption**: Your privacy is our priority. Our database never stores your raw texts. All data is encrypted end-to-end, creating a fortress for your network information.
+
+This technology empowers Hae to deliver quick and relevant responses to your queries, making network management a breeze and ensuring your data is safe and sound. 🛡️
+
+## 🛠️ Tech Stack
 
 - **Frontend**: React
 - **Backend**: Python, FastAPI
@@ -14,7 +26,7 @@ https://github.com/user-attachments/assets/d6ebed48-2862-444c-8116-99fe02775b01
 - **Authentication**: Firebase Auth
 - **Other Tools**: SQLAlchemy, LangChain
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -83,12 +95,12 @@ https://github.com/user-attachments/assets/d6ebed48-2862-444c-8116-99fe02775b01
 
 6. **Enjoy Hae!**
 
-   Open your browser and navigate to `http://localhost:3000` to start chatting with Hae and managing your network effortlessly.
+   Open your browser and navigate to `http://localhost:3000` to start chatting with Hae and managing your network effortlessly. 🎉
 
-## Open Source Contributions
+## 🤝 Open Source Contributions
 
-We welcome contributions from the open source community! Feel free to fork the repository, make improvements, and submit a pull request. We appreciate your help in making Hae better.
+We welcome contributions from the open source community! Feel free to fork the repository, make improvements, and submit a pull request. We appreciate your help in making Hae better. 🙌
 
-## License
+## 📜 License
 
 This project is licensed under the MIT License. See the LICENSE file for more details.
