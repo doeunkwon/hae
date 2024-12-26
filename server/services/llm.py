@@ -92,6 +92,34 @@ def extract_information(input_text: str) -> ExtractedInfo:
         raise Exception(f"Failed to process content: {str(e)}")
 
 
+# Split into two constants - static instructions and dynamic content template
+STATIC_INSTRUCTIONS = """
+    You are a knowledgeable assistant helping recall information about people. 
+    
+    Instructions:
+    - Understand that all content represents direct experiences and interactions
+    - Each memory is prefixed with a timestamp in [YYYY-MM-DD HH:MM:SS] format
+    - When answering questions about timing or sequence of events, use these timestamps
+    - Base answers strictly on provided personal interactions
+    - Never make up or assume interactions that aren't explicitly mentioned
+    - Provide direct answers without:
+        - Explaining why you know something
+        - Mentioning what information was or wasn't provided
+        - Prefacing answers with phrases like "Based on the content..."
+        - Adding unnecessary qualifiers
+
+    Respond with 'UNDERSTOOD' if you acknowledge these instructions.
+"""
+
+MEMORY_CONTEXT_TEMPLATE = """
+    Current context for {name}:
+    Today's date is: {date}
+
+    My memories about {name} (in chronological order):
+    {content}
+"""
+
+
 def answer_question(name: str, question: str, messages: List[Message], content_array: List[str]) -> str:
     try:
         model = genai.GenerativeModel('gemini-1.5-flash')
@@ -100,55 +128,46 @@ def answer_question(name: str, question: str, messages: List[Message], content_a
         # Combine the content array into a single string
         content = "\n".join(content_array)
 
-        # Create the instructions
-        instructions = f"""
-            You are a knowledgeable assistant helping me recall information about {name}. These are my personal memories and interactions with {name}.
-
-            Today's date is: {datetime.now().strftime('%B %d, %Y')}
-
-            My memories about {name} (in chronological order):
-            {content}
-
-            Instructions:
-            - Understand that all content represents my (the user's) direct experiences and interactions with {name}
-            - Each memory is prefixed with a timestamp in [YYYY-MM-DD HH:MM:SS] format
-            - For example, if a memory says "[2024-01-20 15:30:00] Had coffee and discussed AI", it means I personally had coffee with {name} on January 20th, 2024
-            - When answering questions about timing or sequence of events, use these timestamps
-            - If memories are provided, base your answer strictly on these personal interactions
-            - If no memories are provided or memories are empty, you may:
-                a) For general knowledge questions (unrelated to {name}), answer directly without any reference to memories
-                b) For questions about {name}, acknowledge that I haven't shared any relevant memories
-            - Never make up or assume interactions that aren't explicitly mentioned in my memories
-            - Be transparent about what you can and cannot determine from my shared experiences
-            - Provide direct answers without:
-                - Explaining why you know something
-                - Mentioning what information was or wasn't provided
-                - Prefacing your answer with phrases like "Based on the content..." or "I can tell you that..."
-                - Adding qualifiers unless absolutely necessary
-
-            Respond with 'UNDERSTOOD' if you acknowledge these instructions.
-        """
-
-        # Convert messages to the format expected by Gemini
+        # Create chat instance
         chat = model.start_chat()
 
-        # First, send instructions and verify acknowledgment
-        response = chat.send_message(instructions)
-        if not response.text or "UNDERSTOOD" not in response.text.upper():
-            logger.error(f"Model did not acknowledge instructions properly: {
-                         response.text}")
-            raise ValueError("Model failed to acknowledge instructions")
+        print("\n=== Starting new conversation ===")
 
-        # Then send previous chat history if it exists
-        for message in messages:
-            chat.send_message(message.content)
+        # Send static instructions first if this is a new conversation
+        if not messages:
+            print("\nSending initial instructions...")
+            print(f"SYSTEM: {STATIC_INSTRUCTIONS}")
+            response = chat.send_message(STATIC_INSTRUCTIONS)
+            print(f"ASSISTANT: {response.text}")
+            if not response.text or "UNDERSTOOD" not in response.text.upper():
+                print(f"ERROR: Model did not acknowledge instructions properly: {
+                      response.text}")
+                raise ValueError("Model failed to acknowledge instructions")
+
+        # Always send the current context
+        context = MEMORY_CONTEXT_TEMPLATE.format(
+            name=name,
+            date=datetime.now().strftime('%B %d, %Y'),
+            content=content
+        )
+        print(f"\nSYSTEM: {context}")
+        chat.send_message(context)
+
+        # Send previous chat history
+        if messages:
+            print("\n=== Previous conversation history ===")
+            for message in messages:
+                print(f"{message.role.upper()}: {message.content}")
+                chat.send_message(message.content)
 
         # Finally send the current question and get response
+        print(f"\nUSER: {question}")
         response = chat.send_message(question)
         if response.text:
+            print(f"ASSISTANT: {response.text}")
             return response.text
 
-        logger.error(f"Empty response from Gemini for question about {name}")
+        print(f"\nERROR: Empty response from Gemini for question about {name}")
         raise ValueError("No valid response generated")
     except Exception as e:
         logger.error(f"Error answering question about {name}: {str(e)}\nQuestion: {
